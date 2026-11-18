@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>منصة الألعاب الكلاسيكية - POCKET RETRO ULTRA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #060911;
+            background-image: radial-gradient(circle at 50% 0%, #151e30 0%, #060911 75%);
+            overscroll-behavior: none;
+        }
+        .retro-font { font-family: 'Press Start 2P', monospace; }
+        .console-shell {
+            background: linear-gradient(145deg, #222834, #141822);
+            border: 2px solid #323c4e;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.8), inset 0 2px 4px rgba(255,255,255,0.08);
+            border-radius: 18px;
+        }
+        .screen-bezel {
+            background: #06080d;
+            border-radius: 12px;
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.95);
+            border: 2px solid #19202c;
+        }
+        .crt-overlay {
+            background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.22) 50%), linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.015), rgba(0,0,255,0.03));
+            background-size: 100% 3px, 5px 100%;
+            pointer-events: none;
+        }
+
+        /* D-Pad */
+        .dpad-btn {
+            background: linear-gradient(145deg, #323b4c, #1e2430);
+            box-shadow: 0 4px 0 #0d1117, 0 5px 10px rgba(0,0,0,0.6);
+            transition: transform 0.05s ease;
+            color: #94a3b8;
+        }
+        .dpad-btn:active, .dpad-btn.pressed {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #0d1117;
+            background: linear-gradient(145deg, #4b5973, #2f3a4d);
+            color: #ffffff;
+        }
+
+        /* PS & Controller Face Buttons */
+        .ps-btn {
+            position: relative;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            transition: transform 0.05s ease;
+            border: none;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .ps-btn:active, .ps-btn.pressed { transform: translateY(3px) scale(0.94); }
+        .ps-cross { background: linear-gradient(145deg, #3b9eff, #0070d1); box-shadow: 0 4px 0 #00427c, 0 6px 12px rgba(0,112,209,0.45); }
+        .ps-circle { background: linear-gradient(145deg, #ff4d5e, #e60012); box-shadow: 0 4px 0 #8b000a, 0 6px 12px rgba(230,0,18,0.45); }
+        .ps-square { background: linear-gradient(145deg, #ff6ba8, #ff2a7f); box-shadow: 0 4px 0 #9c174c, 0 6px 12px rgba(255,42,127,0.4); }
+        .ps-triangle { background: linear-gradient(145deg, #34d399, #00a651); box-shadow: 0 4px 0 #005c2e, 0 6px 12px rgba(0,166,81,0.4); }
+
+        /* Virtual Analog Stick */
+        .stick-base {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #2e3646, #121620);
+            border: 3px solid #252e3d;
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.7), 0 4px 10px rgba(0,0,0,0.5);
+            position: relative;
+            touch-action: none;
+        }
+        .stick-knob {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #4e5a6e, #222834);
+            border: 2px solid #3c4758;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.15);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .stick-knob.active {
+            background: linear-gradient(145deg, #60a5fa, #2563eb);
+            box-shadow: 0 0 15px rgba(59,130,246,0.7);
+        }
+
+        @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader-ring { animation: spin-slow 1.2s linear infinite; }
+
+        /* Layout visibility classes */
+        .layout-classic .dualsense-only, .layout-classic .psp-only { display: none !important; }
+        .layout-dualsense .classic-only, .layout-dualsense .psp-only { display: none !important; }
+        .layout-psp .classic-only, .layout-psp .dualsense-only { display: none !important; }
+
+        /* ===== PORTRAIT MODE ===== */
+        @media screen and (orientation: portrait) {
+            #game-area-wrap {
+                aspect-ratio: 1 / 1;
+                max-height: 62dvh;
+                width: 100%;
+            }
+            #shoulder-bar {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            #main-controls-row {
+                flex-direction: column;
+                gap: 14px;
+            }
+        }
+
+        /* ===== LANDSCAPE MODE ===== */
+        @media screen and (orientation: landscape) {
+            .landscape-hide { display: none !important; }
+            header {
+                height: 32px !important;
+                padding: 0 10px !important;
+                flex-shrink: 0;
+            }
+            header h1 { font-size: 0.72rem !important; }
+            header button { width: 26px !important; height: 26px !important; }
+
+            main {
+                flex: 1 !important;
+                width: 100% !important;
+                height: calc(100dvh - 32px) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                padding: 4px 8px !important;
+                overflow: hidden !important;
+            }
+
+            #screen-selection, #screen-controller {
+                width: 100% !important;
+                height: 100% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            #screen-selection.hidden, #screen-controller.hidden, #screen-host.hidden {
+                display: none !important;
+            }
+
+            #screen-selection > div, #connect-panel {
+                width: 100% !important;
+                max-width: 540px !important;
+                max-height: calc(100dvh - 42px) !important;
+                overflow-y: auto !important;
+                padding: 10px 14px !important;
+                margin: 0 auto !important;
+            }
+            #screen-selection img { display: none !important; }
+
+            #screen-host {
+                width: 100% !important;
+                height: 100% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            #screen-host .console-shell {
+                width: 98vw !important;
+                height: calc(100dvh - 40px) !important;
+                padding: 4px 8px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+            }
+            #screen-host .screen-bezel {
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                padding: 4px !important;
+                min-height: 0 !important;
+            }
+            #game-area-wrap {
+                height: calc(100dvh - 96px) !important;
+                width: calc(100dvh - 96px) !important;
+                max-width: 90vw !important;
+                max-height: calc(100dvh - 96px) !important;
+                margin: 0 auto !important;
+            }
+
+            #gamepad-ui {
+                width: 98vw !important;
+                max-width: 98vw !important;
+                height: calc(100dvh - 40px) !important;
+                padding: 4px 10px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+            }
+            #gamepad-ui.hidden { display: none !important; }
+
+            #gamepad-controls-wrapper {
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                padding: 2px 0 !important;
+                min-height: 0 !important;
+            }
+
+            #shoulder-bar {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                gap: 8px !important;
+                padding: 0 12px !important;
+                height: 28px !important;
+            }
+            #shoulder-bar button {
+                height: 26px !important;
+                font-size: 10px !important;
+            }
+
+            #main-controls-row {
+                flex: 1 !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                padding: 0 16px !important;
+                min-height: 0 !important;
+            }
+
+            .layout-classic #dpad-container { width: 126px !important; height: 126px !important; }
+            .layout-classic #dpad-container button { width: 42px !important; height: 42px !important; font-size: 1rem !important; }
+
+            .layout-dualsense .stick-base { width: 112px !important; height: 112px !important; }
+            .layout-dualsense .stick-knob { width: 48px !important; height: 48px !important; }
+
+            .layout-psp #psp-left-zone { flex-direction: row !important; gap: 14px !important; }
+            .layout-psp .stick-base { width: 92px !important; height: 92px !important; }
+            .layout-psp .stick-knob { width: 40px !important; height: 40px !important; }
+            .layout-psp #psp-dpad { width: 96px !important; height: 96px !important; }
+            .layout-psp #psp-dpad button { width: 32px !important; height: 32px !important; }
+
+            #action-cluster { width: 128px !important; height: 128px !important; }
+            #action-cluster button { width: 44px !important; height: 44px !important; }
+        }
+    </style>
+</head>
+<body class="text-white overflow-hidden">
+
+    <!-- Global Loader -->
+    <div id="global-loader" class="fixed inset-0 bg-[#060911] z-50 flex flex-col items-center justify-center p-6 text-center space-y-5 transition-opacity duration-500">
+        <div class="relative w-16 h-16 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+            <div class="absolute inset-0 rounded-full border-4 border-t-emerald-400 border-r-blue-500 loader-ring"></div>
+            <i class="fa-solid fa-gamepad text-xl text-emerald-400"></i>
+        </div>
+        <div class="space-y-2 w-full max-w-xs">
+            <h2 class="retro-font text-xs text-emerald-400 tracking-wider">POCKET RETRO ULTRA</h2>
+            <p id="loader-text" class="text-xs text-slate-400 font-bold">جاري تهيئة المنصة والجويستك...</p>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
+                <div id="loader-bar" class="h-full bg-gradient-to-r from-emerald-500 to-blue-500 w-0 transition-all duration-300"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="w-full flex items-center justify-between py-1.5 px-3 shrink-0">
+        <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500/20 to-blue-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                <i class="fa-solid fa-gamepad text-xs"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-black tracking-wide text-slate-100">POCKET RETRO ULTRA</h1>
+                <p class="text-[9px] text-slate-400 landscape-hide">جرافيكس عالي + تحكم أفقي متكامل</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <button id="sound-toggle-btn" onclick="toggleMute()" class="w-8 h-8 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-emerald-400 flex items-center justify-center transition">
+                <i id="sound-icon" class="fa-solid fa-volume-high text-xs"></i>
+            </button>
+            <button onclick="goHome()" title="خروج" class="w-8 h-8 bg-rose-600/25 hover:bg-rose-600 border border-rose-500/60 rounded-lg text-rose-400 hover:text-white flex items-center justify-center transition font-black">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full flex-1 flex flex-col items-center justify-center min-h-0 px-2">
+
+        <!-- Role Selection -->
+        <div id="screen-selection" class="w-full max-w-md flex items-center justify-center">
+            <div class="w-full console-shell p-4 text-center space-y-3">
+                <div class="screen-bezel p-3 space-y-1.5">
+                    <h2 class="text-base font-black text-emerald-400">منصة الألعاب اللاسلكية</h2>
+                    <p class="text-[11px] text-slate-400">جوال أول <span class="text-blue-400 font-bold">شاشة عرض</span> + جوال ثاني <span class="text-emerald-400 font-bold">يد تحكم لاسلكية</span></p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button onclick="selectRole('host')" class="w-full py-3 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-bold text-sm transition active:scale-95 shadow-lg border border-blue-400/30 flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-lg"><i class="fa-solid fa-tv"></i></div>
+                            <div class="text-right">
+                                <span class="block font-black text-xs sm:text-sm">1. الشاشة</span>
+                                <span class="text-[10px] text-blue-200">عرض الألعاب</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-left text-blue-200"></i>
+                    </button>
+                    <button onclick="selectRole('controller')" class="w-full py-3 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl font-bold text-sm transition active:scale-95 shadow-lg border border-emerald-400/30 flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-lg"><i class="fa-solid fa-gamepad"></i></div>
+                            <div class="text-right">
+                                <span class="block font-black text-xs sm:text-sm">2. يد التحكم</span>
+                                <span class="text-[10px] text-emerald-200">Sony / PSP / كلاسيك</span>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-left text-emerald-200"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HOST VIEW -->
+        <div id="screen-host" class="w-full hidden flex-col items-center justify-center">
+            <div class="w-full max-w-2xl console-shell p-2.5 space-y-1.5">
+                <div class="flex items-center justify-between px-1 shrink-0">
+                    <div class="flex items-center gap-1.5">
+                        <span id="power-led" class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b] animate-pulse"></span>
+                        <span class="text-[9px] font-bold tracking-widest text-slate-400 uppercase">LINK</span>
+                    </div>
+                    <div class="bg-slate-950/90 border border-slate-700 px-2.5 py-0.5 rounded-md flex items-center gap-1.5">
+                        <span class="text-[10px] text-slate-400">رمز الغرفة:</span>
+                        <span id="room-code-display" class="retro-font text-xs text-emerald-400 tracking-widest">----</span>
+                    </div>
+                    <span id="connection-badge" class="text-[9px] text-amber-400 font-bold">بانتظار الربط</span>
+                </div>
+
+                <div class="screen-bezel p-2 relative">
+                    <div class="flex justify-between items-center mb-1 px-1 text-[10px] shrink-0">
+                        <div class="flex items-center gap-1 text-emerald-400 font-bold"><span>النقاط:</span><span id="host-score" class="retro-font text-xs">0</span></div>
+                        <span id="current-game-title" class="text-[10px] font-bold text-slate-300">قائمة الألعاب</span>
+                        <div class="flex items-center gap-1 text-amber-400 font-bold"><span>الأعلى:</span><span id="host-highscore" class="retro-font text-xs">0</span></div>
+                    </div>
+
+                    <div id="game-area-wrap" class="relative mx-auto bg-[#060a08] rounded-lg overflow-hidden border-2 border-[#16251b]">
+                        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+                        <div class="crt-overlay absolute inset-0"></div>
+
+                        <div id="game-loading-overlay" class="absolute inset-0 bg-[#060a08]/95 hidden flex-col items-center justify-center p-4 text-center space-y-3 z-30">
+                            <div class="w-10 h-10 rounded-full border-4 border-slate-800 border-t-emerald-400 loader-ring"></div>
+                            <p id="game-loading-title" class="text-xs font-black text-emerald-400">جاري تحميل اللعبة...</p>
+                        </div>
+
+                        <div id="waiting-overlay" class="absolute inset-0 bg-[#060a08]/95 flex flex-col items-center justify-center p-4 text-center space-y-2.5 z-20">
+                            <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-lg text-emerald-400 animate-pulse">
+                                <i class="fa-solid fa-satellite-dish"></i>
+                            </div>
+                            <h3 class="text-sm font-black text-emerald-400">بانتظار ربط يد التحكم...</h3>
+                            <p class="text-[11px] text-slate-300 max-w-xs">أدخل رمز الغرفة في الجوال الثاني للبدء</p>
+                            <button onclick="skipWaitingForTest()" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-slate-300 border border-slate-700">تجربة بدون يد (فتح القائمة)</button>
+                        </div>
+
+                        <div id="menu-overlay" class="absolute inset-0 bg-[#060a08]/95 hidden flex-col justify-between p-2 z-10">
+                            <div class="text-center border-b border-emerald-900/60 pb-1 shrink-0">
+                                <h3 class="text-xs font-black text-emerald-400">اختر اللعبة</h3>
+                                <p class="text-[9px] text-slate-400">الأسهم للتنقل • ✕ للتشغيل</p>
+                            </div>
+                            <div id="games-list" class="space-y-1 my-1 overflow-y-auto flex-1 pr-0.5">
+                                <div onclick="launchGame('snake')" data-index="0" class="game-item p-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-950/50 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-emerald-900 flex items-center justify-center text-sm">🐍</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">الأفعى النيونية HD</span>
+                                            <span class="text-[9px] text-emerald-300">تفاح ذهبي ومضاعفة نقاط</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-emerald-400"></i>
+                                </div>
+                                <div onclick="launchGame('mario')" data-index="1" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-red-900 flex items-center justify-center text-sm">🍄</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">سوبر بوكيت (3 عوالم)</span>
+                                            <span class="text-[9px] text-amber-300">مروج الفطر • كهوف الحمم • قلعة السماء</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('space')" data-index="2" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-indigo-900 flex items-center justify-center text-sm">🚀</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">حرب المجرات</span>
+                                            <span class="text-[9px] text-slate-400">مركبات فضائية وليزر مزدوج</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('flappy')" data-index="3" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-amber-900 flex items-center justify-center text-sm">🐦</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">فلابي سيتي</span>
+                                            <span class="text-[9px] text-slate-400">أفق مدينة ليلي وتأثيرات طيران</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('bricks')" data-index="4" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-rose-900 flex items-center justify-center text-sm">💎</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">محطم الكريستال</span>
+                                            <span class="text-[9px] text-slate-400">كرة طاقة متوهجة وكريستالات</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('dodge')" data-index="5" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-purple-900 flex items-center justify-center text-sm">☄️</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">عاصفة النيازك</span>
+                                            <span class="text-[9px] text-slate-400">نيازك ملتهبة ودرع طاقة</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('pong')" data-index="6" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-sky-900 flex items-center justify-center text-sm">🏓</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">بونغ نيون</span>
+                                            <span class="text-[9px] text-slate-400">تحدي الذكاء الاصطناعي</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('custom')" data-index="7" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-cyan-900 flex items-center justify-center text-sm">📄</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">HTML مخصص</span>
+                                            <span class="text-[9px] text-slate-400">الصق كود لعبة HTML</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="gameover-overlay" class="absolute inset-0 bg-[#060a08]/92 hidden flex-col items-center justify-center p-3 text-center space-y-2 z-15">
+                            <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-lg text-rose-400"><i class="fa-solid fa-trophy"></i></div>
+                            <h3 id="gameover-title" class="text-sm font-black text-rose-400">انتهت الجولة!</h3>
+                            <p class="text-xs text-slate-300">النقاط: <span id="final-score" class="retro-font text-emerald-400">0</span></p>
+                            <div class="flex gap-2">
+                                <button onclick="restartCurrentGame()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold text-[11px] flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i> إعادة (✕)</button>
+                                <button onclick="exitToMenu()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 rounded-lg font-bold text-[11px] flex items-center gap-1"><i class="fa-solid fa-xmark"></i> القائمة (○)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLLER VIEW -->
+        <div id="screen-controller" class="w-full hidden flex-col items-center justify-center">
+            
+            <!-- Centered Connect Panel -->
+            <div id="connect-panel" class="w-full max-w-md console-shell p-4 space-y-2.5 text-center mx-auto">
+                <div class="flex items-center justify-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm border border-emerald-500/30"><i class="fa-solid fa-link"></i></div>
+                    <h3 class="font-black text-base">ربط يد التحكم</h3>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setControllerLayout('classic')" id="quick-layout-classic" class="p-2 rounded-xl border-2 border-emerald-500 bg-emerald-950/50 text-[10px] font-bold text-emerald-300 flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-gamepad text-sm"></i><span>كلاسيك</span>
+                    </button>
+                    <button onclick="setControllerLayout('dualsense')" id="quick-layout-dualsense" class="p-2 rounded-xl border border-slate-700 bg-slate-800/60 text-[10px] font-bold text-slate-300 flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-circle-dot text-sm"></i><span>سوني PS</span>
+                    </button>
+                    <button onclick="setControllerLayout('psp')" id="quick-layout-psp" class="p-2 rounded-xl border border-slate-700 bg-slate-800/60 text-[10px] font-bold text-slate-300 flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-mobile-screen text-sm"></i><span>يد PSP</span>
+                    </button>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="tel" id="input-room-code" placeholder="0000" maxlength="4" dir="ltr" class="flex-1 bg-slate-950 border-2 border-slate-700 rounded-xl px-3 py-2 text-center retro-font text-lg text-emerald-400 tracking-widest focus:outline-none focus:border-emerald-500">
+                    <button id="connect-btn" onclick="connectToHost()" class="sm:w-44 bg-emerald-600 hover:bg-emerald-500 active:scale-95 py-2.5 px-4 rounded-xl font-black text-xs sm:text-sm text-white flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wifi"></i><span>ربط الآن</span>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                    <span id="controller-status-msg" class="text-[10px] text-amber-400 font-semibold">أدخل رمز الغرفة من الشاشة</span>
+                    <button onclick="openControllerPreview()" class="bg-slate-800 hover:bg-slate-700 py-1.5 px-3 rounded-lg font-bold text-[10px] border border-slate-600 text-slate-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-eye"></i><span>معاينة اليد</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Gamepad UI -->
+            <div id="gamepad-ui" class="w-full max-w-4xl console-shell p-2.5 hidden flex-col justify-between relative">
+                
+                <!-- Top Status Bar -->
+                <div class="screen-bezel px-3 py-1 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span id="ctrl-status-dot" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]"></span>
+                        <span id="ctrl-status-label" class="text-[10px] font-bold text-emerald-400">متصل</span>
+                        <span class="text-slate-600">|</span>
+                        <span class="text-[10px] font-bold text-slate-400">النقاط: <b id="controller-score" class="retro-font text-amber-400">0</b></span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="toggleCustomizeDrawer()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded-md text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                            <i class="fa-solid fa-sliders text-[9px]"></i><span>تغيير اليد</span>
+                        </button>
+                        <button id="back-to-connect-btn" onclick="backToConnectPanel()" class="hidden bg-blue-600 hover:bg-blue-500 px-2.5 py-1 rounded-md text-[10px] font-bold text-white">رجوع</button>
+                    </div>
+                </div>
+
+                <!-- Floating Customize Modal -->
+                <div id="customize-drawer" class="hidden absolute inset-2 z-40 bg-slate-950/95 backdrop-blur-md border-2 border-slate-700 rounded-2xl p-3 flex-col justify-between text-right shadow-2xl">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span class="text-xs font-black text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> تخصيص يد التحكم</span>
+                        <button onclick="toggleCustomizeDrawer()" class="w-7 h-7 rounded-lg bg-rose-600/20 text-rose-400 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-auto py-1">
+                        <div class="space-y-1">
+                            <span class="block text-[10px] text-slate-300 font-bold">شكل اليد</span>
+                            <div class="grid grid-cols-3 gap-1.5">
+                                <button onclick="setControllerLayout('classic')" id="layout-btn-classic" class="px-2 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-950/40 text-[10px] font-bold text-emerald-300 flex flex-col items-center gap-0.5">
+                                    <i class="fa-solid fa-gamepad text-sm"></i><span>كلاسيك</span>
+                                </button>
+                                <button onclick="setControllerLayout('dualsense')" id="layout-btn-dualsense" class="px-2 py-2 rounded-lg border border-slate-600 bg-slate-800/60 text-[10px] font-bold text-slate-300 flex flex-col items-center gap-0.5">
+                                    <i class="fa-solid fa-circle-dot text-sm"></i><span>سوني PS</span>
+                                </button>
+                                <button onclick="setControllerLayout('psp')" id="layout-btn-psp" class="px-2 py-2 rounded-lg border border-slate-600 bg-slate-800/60 text-[10px] font-bold text-slate-300 flex flex-col items-center gap-0.5">
+                                    <i class="fa-solid fa-mobile-screen text-sm"></i><span>يد PSP</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 flex flex-col justify-center">
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px] text-slate-300 font-bold">
+                                    <span>حجم الأزرار</span>
+                                    <span id="scale-val-text" class="text-emerald-400">100%</span>
+                                </div>
+                                <input type="range" id="ctrl-scale-slider" min="80" max="115" value="100" oninput="updateGamepadScale(this.value)" class="w-full accent-emerald-500">
+                            </div>
+                            <div class="flex items-center justify-between gap-2">
+                                <button onclick="toggleGamepadLayout()" id="layout-toggle-btn" class="flex-1 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-[10px] font-bold text-blue-400">عكس الأماكن: افتراضي</button>
+                                <button onclick="toggleGamepadVibration()" id="vibe-toggle-btn" class="flex-1 py-1.5 bg-emerald-600/20 border border-emerald-500/50 rounded-lg text-[10px] font-bold text-emerald-400">اهتزاز: مفعّل</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="toggleCustomizeDrawer()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-black text-xs text-white">حفظ وإغلاق</button>
+                </div>
+
+                <!-- ===== CONTROLS AREA ===== -->
+                <div id="gamepad-controls-wrapper" class="layout-classic flex-1 flex flex-col justify-between transition-transform origin-center w-full min-h-0">
+
+                    <!-- Single Clean Shoulder Row: L2 | L1 ---- R1 | R2 -->
+                    <div id="shoulder-bar" class="w-full flex items-center justify-between gap-2 shrink-0" dir="ltr">
+                        <div class="flex gap-1.5 flex-1">
+                            <button id="btn-l2" class="flex-1 h-8 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 text-[10px] font-black shadow active:translate-y-0.5">L2</button>
+                            <button id="btn-l1" class="flex-1 h-8 rounded-lg bg-gradient-to-b from-slate-600 to-slate-800 border border-slate-500 text-white text-xs font-black shadow active:translate-y-0.5">L1</button>
+                        </div>
+                        <div class="w-8"></div>
+                        <div class="flex gap-1.5 flex-1">
+                            <button id="btn-r1" class="flex-1 h-8 rounded-lg bg-gradient-to-b from-slate-600 to-slate-800 border border-slate-500 text-white text-xs font-black shadow active:translate-y-0.5">R1</button>
+                            <button id="btn-r2" class="flex-1 h-8 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 text-[10px] font-black shadow active:translate-y-0.5">R2</button>
+                        </div>
+                    </div>
+
+                    <!-- Main Ergonomic Controls Row -->
+                    <div id="main-controls-row" class="w-full flex-1 flex items-center justify-between px-2 min-h-0" dir="ltr">
+
+                        <!-- LEFT ZONE -->
+                        <div id="left-zone" class="flex items-center justify-center">
+                            <!-- 1. Classic D-Pad -->
+                            <div id="dpad-container" class="classic-only relative" style="width:144px;height:144px;">
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-[#161b24] rounded-md z-0"></div>
+                                <button id="btn-up" class="dpad-btn absolute top-0 left-1/2 -translate-x-1/2 flex items-center justify-center text-xl z-10" style="width:48px;height:48px;border-radius:12px 12px 6px 6px;"><i class="fa-solid fa-caret-up"></i></button>
+                                <button id="btn-down" class="dpad-btn absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center text-xl z-10" style="width:48px;height:48px;border-radius:6px 6px 12px 12px;"><i class="fa-solid fa-caret-down"></i></button>
+                                <button id="btn-left" class="dpad-btn absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center text-xl z-10" style="width:48px;height:48px;border-radius:12px 6px 6px 12px;"><i class="fa-solid fa-caret-left"></i></button>
+                                <button id="btn-right" class="dpad-btn absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center text-xl z-10" style="width:48px;height:48px;border-radius:6px 12px 12px 6px;"><i class="fa-solid fa-caret-right"></i></button>
+                            </div>
+
+                            <!-- 2. Sony DualSense Analog Stick -->
+                            <div id="left-stick-zone" class="dualsense-only flex flex-col items-center gap-1">
+                                <div id="left-stick" class="stick-base">
+                                    <div id="left-knob" class="stick-knob"></div>
+                                </div>
+                                <span class="text-[9px] text-slate-400 font-bold">ANALOG</span>
+                            </div>
+
+                            <!-- 3. PSP Handheld -->
+                            <div id="psp-left-zone" class="psp-only flex items-center gap-3">
+                                <div id="psp-stick" class="stick-base" style="width:96px;height:96px;">
+                                    <div id="psp-knob" class="stick-knob" style="width:42px;height:42px;"></div>
+                                </div>
+                                <div id="psp-dpad" class="relative" style="width:102px;height:102px;">
+                                    <button id="psp-btn-up" class="dpad-btn absolute top-0 left-1/2 -translate-x-1/2 flex items-center justify-center text-sm z-10" style="width:34px;height:34px;border-radius:7px 7px 2px 2px;"><i class="fa-solid fa-caret-up"></i></button>
+                                    <button id="psp-btn-down" class="dpad-btn absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center text-sm z-10" style="width:34px;height:34px;border-radius:2px 2px 7px 7px;"><i class="fa-solid fa-caret-down"></i></button>
+                                    <button id="psp-btn-left" class="dpad-btn absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center text-sm z-10" style="width:34px;height:34px;border-radius:7px 2px 2px 7px;"><i class="fa-solid fa-caret-left"></i></button>
+                                    <button id="psp-btn-right" class="dpad-btn absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center text-sm z-10" style="width:34px;height:34px;border-radius:2px 7px 7px 2px;"><i class="fa-solid fa-caret-right"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CENTER: Select / Start -->
+                        <div class="flex flex-row sm:flex-col items-center gap-2.5">
+                            <button id="btn-select" class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-600 text-[9px] font-black text-slate-300 shadow active:scale-95">SELECT</button>
+                            <button id="btn-start" class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-600 text-[9px] font-black text-slate-300 shadow active:scale-95">START</button>
+                        </div>
+
+                        <!-- RIGHT ZONE: Face Buttons Diamond -->
+                        <div id="right-face-zone" class="flex items-center justify-center">
+                            <div id="action-cluster" class="relative" style="width:144px;height:144px;">
+                                <button id="btn-triangle" class="ps-btn ps-triangle absolute top-0 left-1/2 -translate-x-1/2 z-10" style="width:48px;height:48px;">
+                                    <span class="text-base leading-none">△</span>
+                                </button>
+                                <button id="btn-exit-x" class="ps-btn ps-circle absolute right-0 top-1/2 -translate-y-1/2 z-10" style="width:48px;height:48px;">
+                                    <span class="text-base font-black leading-none">○</span>
+                                    <span class="text-[6px] opacity-90 leading-none">قائمة</span>
+                                </button>
+                                <button id="btn-action-a" class="ps-btn ps-cross absolute bottom-0 left-1/2 -translate-x-1/2 z-10" style="width:48px;height:48px;">
+                                    <span class="text-base font-black leading-none">✕</span>
+                                    <span class="text-[6px] opacity-90 leading-none">تشغيل</span>
+                                </button>
+                                <button id="btn-square" class="ps-btn ps-square absolute left-0 top-1/2 -translate-y-1/2 z-10" style="width:48px;height:48px;">
+                                    <span class="text-sm leading-none">□</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="notification-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-700 p-5 rounded-2xl max-w-xs w-full text-center space-y-3 shadow-2xl">
+            <div id="modal-icon" class="text-2xl text-emerald-400"><i class="fa-solid fa-circle-info"></i></div>
+            <p id="modal-message" class="text-sm font-bold text-slate-200">رسالة النظام</p>
+            <button onclick="closeModal()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-sm">حسناً</button>
+        </div>
+    </div>
+
+    <script>
+        // ================= LOADER =================
+        function runGlobalLoader() {
+            const bar = document.getElementById('loader-bar');
+            const text = document.getElementById('loader-text');
+            const loader = document.getElementById('global-loader');
+            if (!loader || loader.classList.contains('hidden')) return;
+            setTimeout(() => { bar.style.width = '50%'; text.innerText = 'جاري تجهيز الجويستك والعوالم...'; }, 120);
+            setTimeout(() => { bar.style.width = '100%'; text.innerText = 'جاهز للعب!'; }, 400);
+            setTimeout(() => { loader.style.opacity = '0'; setTimeout(() => loader.classList.add('hidden'), 300); }, 650);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', runGlobalLoader);
+        else runGlobalLoader();
+
+        // ================= AUDIO =================
+        let synth = null, isMuted = false;
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('sound-icon').className = isMuted ? 'fa-solid fa-volume-xmark text-rose-400 text-xs' : 'fa-solid fa-volume-high text-emerald-400 text-xs';
+        }
+        function playSound(type) {
+            if (isMuted) return;
+            try {
+                if (!synth) {
+                    synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.05, release: 0.1 } }).toDestination();
+                    synth.volume.value = -6;
+                }
+                if (Tone.context.state !== 'running') Tone.start();
+                const now = Tone.now();
+                const map = {
+                    eat: () => { synth.triggerAttackRelease("E5","32n",now); synth.triggerAttackRelease("B5","16n",now+0.05); },
+                    laser: () => { synth.triggerAttackRelease("G5","32n",now); synth.triggerAttackRelease("C4","32n",now+0.03); },
+                    explosion: () => synth.triggerAttackRelease(["C2","F#2"],"16n",now),
+                    hit: () => synth.triggerAttackRelease("A4","32n",now),
+                    move: () => synth.triggerAttackRelease("C5","64n",now),
+                    select: () => { synth.triggerAttackRelease("C5","32n",now); synth.triggerAttackRelease("E5","32n",now+0.06); synth.triggerAttackRelease("G5","16n",now+0.12); },
+                    exit: () => { synth.triggerAttackRelease("G4","32n",now); synth.triggerAttackRelease("C4","16n",now+0.06); },
+                    gameover: () => { synth.triggerAttackRelease("E4","16n",now); synth.triggerAttackRelease("D4","16n",now+0.15); synth.triggerAttackRelease("C4","16n",now+0.3); synth.triggerAttackRelease("G3","4n",now+0.45); },
+                    connect: () => { synth.triggerAttackRelease("C5","16n",now); synth.triggerAttackRelease("G5","8n",now+0.1); }
+                };
+                if (map[type]) map[type]();
+            } catch(e) {}
+        }
+
+        // ================= PEER =================
+        let peer = null, conn = null, role = null, roomCode = '';
+        const peerConfig = { config: { iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun.services.mozilla.com' }
+        ]}};
+
+        function selectRole(r) {
+            playSound('select');
+            role = r;
+            requestWakeLock();
+            document.getElementById('screen-selection').classList.add('hidden');
+            if (r === 'host') {
+                document.getElementById('screen-host').classList.remove('hidden');
+                initHost();
+            } else {
+                document.getElementById('screen-controller').classList.remove('hidden');
+            }
+        }
+
+        function showMessage(msg, isError = false) {
+            document.getElementById('modal-message').innerText = msg;
+            document.getElementById('modal-icon').innerHTML = isError ? '<i class="fa-solid fa-triangle-exclamation text-rose-400"></i>' : '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+            const m = document.getElementById('notification-modal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeModal() {
+            const m = document.getElementById('notification-modal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+
+        function initHost() {
+            roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('room-code-display').innerText = roomCode;
+            peer = new Peer('pocket-retro-' + roomCode, peerConfig);
+            peer.on('connection', (c) => { conn = c; setupHostConnection(); });
+            peer.on('error', () => showMessage('حدث خطأ في الاتصال، حدّث الصفحة.', true));
+        }
+
+        function skipWaitingForTest() {
+            playSound('select');
+            document.getElementById('waiting-overlay').classList.add('hidden');
+            openGamesMenu();
+        }
+
+        function setupHostConnection() {
+            playSound('connect');
+            document.getElementById('power-led').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]';
+            const badge = document.getElementById('connection-badge');
+            badge.className = 'text-[9px] text-emerald-400 font-bold';
+            badge.innerText = 'متصل';
+            document.getElementById('waiting-overlay').classList.add('hidden');
+            openGamesMenu();
+            conn.on('data', handleControllerInput);
+            conn.on('close', () => {
+                document.getElementById('power-led').className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]';
+                badge.className = 'text-[9px] text-rose-400 font-bold';
+                badge.innerText = 'انقطع الاتصال';
+                setPaused(false);
+                openGamesMenu();
+                document.getElementById('menu-overlay').classList.add('hidden');
+                document.getElementById('menu-overlay').classList.remove('flex');
+                document.getElementById('waiting-overlay').classList.remove('hidden');
+                showMessage('انقطع اتصال يد التحكم!', true);
+            });
+        }
+
+        // ================= CONTROLLER STATE =================
+        let gamepadEventsBound = false;
+        let vibrateEnabled = true;
+        let isLayoutReversed = false;
+        let currentLayout = 'classic';
+        let lastStickDir = null;
+
+        function connectToHost() {
+            playSound('move');
+            const code = document.getElementById('input-room-code').value.trim();
+            if (code.length !== 4) { showMessage('أدخل رمز من 4 أرقام', true); return; }
+            const btn = document.getElementById('connect-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الربط...';
+            document.getElementById('controller-status-msg').innerText = 'جاري البحث...';
+
+            if (peer) peer.destroy();
+            peer = new Peer(peerConfig);
+            peer.on('open', () => {
+                conn = peer.connect('pocket-retro-' + code, { reliable: true });
+                const t = setTimeout(() => {
+                    if (!conn || !conn.open) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-wifi"></i> <span>ربط الآن</span>';
+                        document.getElementById('controller-status-msg').innerText = 'تعذر الوصول، تأكد من الرمز';
+                        showMessage('تأكد أن الشاشة مفتوحة والرمز صحيح', true);
+                    }
+                }, 8000);
+                conn.on('open', () => {
+                    clearTimeout(t);
+                    playSound('connect');
+                    if (vibrateEnabled && navigator.vibrate) navigator.vibrate([50,50,100]);
+                    document.getElementById('connect-panel').classList.add('hidden');
+                    document.getElementById('gamepad-ui').classList.remove('hidden');
+                    document.getElementById('gamepad-ui').classList.add('flex');
+                    document.getElementById('back-to-connect-btn').classList.add('hidden');
+                    document.getElementById('ctrl-status-dot').className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]';
+                    document.getElementById('ctrl-status-label').className = 'text-[10px] font-bold text-emerald-400';
+                    document.getElementById('ctrl-status-label').innerText = 'متصل';
+                    setupGamepadEvents();
+                });
+                conn.on('data', (d) => {
+                    if (d.type === 'scoreUpdate') document.getElementById('controller-score').innerText = d.score;
+                    else if (d.type === 'vibrate' && vibrateEnabled && navigator.vibrate) navigator.vibrate(d.pattern);
+                });
+                conn.on('close', () => { showMessage('انقطع الاتصال.', true); setTimeout(() => location.reload(), 1500); });
+            });
+            peer.on('error', () => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-wifi"></i> <span>ربط الآن</span>';
+                document.getElementById('controller-status-msg').innerText = 'تعذر الاتصال';
+                showMessage('لم يتم العثور على الشاشة.', true);
+            });
+        }
+
+        function openControllerPreview() {
+            playSound('select');
+            document.getElementById('connect-panel').classList.add('hidden');
+            document.getElementById('gamepad-ui').classList.remove('hidden');
+            document.getElementById('gamepad-ui').classList.add('flex');
+            document.getElementById('back-to-connect-btn').classList.remove('hidden');
+            document.getElementById('ctrl-status-dot').className = 'w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24]';
+            document.getElementById('ctrl-status-label').className = 'text-[10px] font-bold text-amber-400';
+            document.getElementById('ctrl-status-label').innerText = 'معاينة';
+            setupGamepadEvents();
+        }
+
+        function backToConnectPanel() {
+            playSound('move');
+            document.getElementById('gamepad-ui').classList.add('hidden');
+            document.getElementById('gamepad-ui').classList.remove('flex');
+            document.getElementById('connect-panel').classList.remove('hidden');
+        }
+
+        function toggleCustomizeDrawer() {
+            playSound('move');
+            const d = document.getElementById('customize-drawer');
+            if (d.classList.contains('hidden')) {
+                d.classList.remove('hidden');
+                d.classList.add('flex');
+            } else {
+                d.classList.add('hidden');
+                d.classList.remove('flex');
+            }
+        }
+
+        function saveCtrlPrefs() {
+            try { localStorage.setItem('pocketRetroCtrlUltra', JSON.stringify({
+                layout: currentLayout, scale: document.getElementById('ctrl-scale-slider').value,
+                vibrate: vibrateEnabled, reversed: isLayoutReversed
+            })); } catch(e) {}
+        }
+        function loadCtrlPrefs() {
+            try {
+                const p = JSON.parse(localStorage.getItem('pocketRetroCtrlUltra') || 'null');
+                if (!p) return;
+                document.getElementById('ctrl-scale-slider').value = p.scale || 100;
+                updateGamepadScale(p.scale || 100, true);
+                if (p.layout && p.layout !== currentLayout) setControllerLayout(p.layout, true);
+                if (p.vibrate === false) { vibrateEnabled = true; toggleGamepadVibration(true); }
+                if (p.reversed) { isLayoutReversed = false; toggleGamepadLayout(true); }
+            } catch(e) {}
+        }
+        window.addEventListener('load', loadCtrlPrefs);
+
+        function updateGamepadScale(val, silent) {
+            document.getElementById('scale-val-text').innerText = val + '%';
+            document.getElementById('main-controls-row').style.transform = `scale(${val/100})`;
+            if (!silent) saveCtrlPrefs();
+        }
+
+        function toggleGamepadLayout(silent) {
+            if (!silent) playSound('select');
+            isLayoutReversed = !isLayoutReversed;
+            const row = document.getElementById('main-controls-row');
+            const btn = document.getElementById('layout-toggle-btn');
+            if (isLayoutReversed) {
+                row.style.flexDirection = window.matchMedia('(orientation: landscape)').matches ? 'row-reverse' : 'column-reverse';
+                btn.innerText = 'عكس الأماكن: معكوس';
+            } else {
+                row.style.flexDirection = '';
+                btn.innerText = 'عكس الأماكن: افتراضي';
+            }
+            if (!silent) saveCtrlPrefs();
+        }
+
+        function toggleGamepadVibration(silent) {
+            vibrateEnabled = !vibrateEnabled;
+            if (!silent) playSound('move');
+            const btn = document.getElementById('vibe-toggle-btn');
+            if (vibrateEnabled) {
+                btn.innerText = 'اهتزاز: مفعّل';
+                btn.className = 'flex-1 py-1.5 bg-emerald-600/20 border border-emerald-500/50 rounded-lg text-[10px] font-bold text-emerald-400';
+                if (!silent && navigator.vibrate) navigator.vibrate(40);
+            } else {
+                btn.innerText = 'اهتزاز: متوقف';
+                btn.className = 'flex-1 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-[10px] font-bold text-slate-400';
+            }
+            if (!silent) saveCtrlPrefs();
+        }
+
+        function setControllerLayout(layout, silent) {
+            if (!silent) playSound('select');
+            currentLayout = layout;
+            const wrapper = document.getElementById('gamepad-controls-wrapper');
+            wrapper.classList.remove('layout-classic', 'layout-dualsense', 'layout-psp');
+            wrapper.classList.add('layout-' + layout);
+
+            ['classic', 'dualsense', 'psp'].forEach(l => {
+                const btnDrawer = document.getElementById('layout-btn-' + l);
+                if (btnDrawer) {
+                    btnDrawer.className = l === layout
+                        ? 'px-2 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-950/40 text-[10px] font-bold text-emerald-300 flex flex-col items-center gap-0.5'
+                        : 'px-2 py-2 rounded-lg border border-slate-600 bg-slate-800/60 text-[10px] font-bold text-slate-300 flex flex-col items-center gap-0.5';
+                }
+                const btnQuick = document.getElementById('quick-layout-' + l);
+                if (btnQuick) {
+                    btnQuick.className = l === layout
+                        ? 'p-2 rounded-xl border-2 border-emerald-500 bg-emerald-950/50 text-[10px] font-bold text-emerald-300 flex flex-col items-center gap-1'
+                        : 'p-2 rounded-xl border border-slate-700 bg-slate-800/60 text-[10px] font-bold text-slate-300 flex flex-col items-center gap-1';
+                }
+            });
+
+            if (layout === 'dualsense') initAnalogStick('left-stick', 'left-knob');
+            else if (layout === 'psp') initAnalogStick('psp-stick', 'psp-knob');
+            if (!silent) saveCtrlPrefs();
+        }
+
+        // ================= ANALOG STICK (FIXED MULTI-TOUCH & SMOOTH TRACKING) =================
+        function initAnalogStick(baseId, knobId) {
+            const base = document.getElementById(baseId);
+            if (!base) return;
+
+            const newBase = base.cloneNode(true);
+            base.parentNode.replaceChild(newBase, base);
+            const knob = newBase.querySelector('.stick-knob');
+            if (!knob) return;
+            knob.id = knobId;
+
+            let activeTouchId = null;
+            let isMouseDown = false;
+            const maxDist = 32;
+
+            function updateStick(clientX, clientY) {
+                const rect = newBase.getBoundingClientRect();
+                if (rect.width === 0) return;
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                let dx = clientX - cx;
+                let dy = clientY - cy;
+                const dist = Math.hypot(dx, dy);
+                if (dist > maxDist) {
+                    dx = (dx / dist) * maxDist;
+                    dy = (dy / dist) * maxDist;
+                }
+                knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+                const dead = 9;
+                let dir = null;
+                if (Math.abs(dx) > dead || Math.abs(dy) > dead) {
+                    if (Math.abs(dx) > Math.abs(dy)) dir = dx > 0 ? 'RIGHT' : 'LEFT';
+                    else dir = dy > 0 ? 'DOWN' : 'UP';
+                }
+                if (dir !== lastStickDir) {
+                    if (lastStickDir) sendCmd({ type: 'dir', dir: lastStickDir, active: false });
+                    lastStickDir = dir;
+                    if (dir) {
+                        sendCmd({ type: 'dir', dir: dir, active: true });
+                        if (vibrateEnabled && navigator.vibrate) navigator.vibrate(12);
+                    }
+                }
+            }
+
+            function resetStick() {
+                activeTouchId = null;
+                isMouseDown = false;
+                knob.classList.remove('active');
+                knob.style.transform = 'translate(-50%, -50%)';
+                if (lastStickDir) sendCmd({ type: 'dir', dir: lastStickDir, active: false });
+                lastStickDir = null;
+            }
+
+            newBase.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (activeTouchId !== null) return;
+                const t = e.changedTouches[0];
+                activeTouchId = t.identifier;
+                knob.classList.add('active');
+                updateStick(t.clientX, t.clientY);
+            }, { passive: false });
+
+            newBase.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (activeTouchId === null) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === activeTouchId) {
+                        updateStick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+                        break;
+                    }
+                }
+            }, { passive: false });
+
+            const onTouchEnd = (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === activeTouchId) {
+                        resetStick();
+                        break;
+                    }
+                }
+            };
+            newBase.addEventListener('touchend', onTouchEnd, { passive: false });
+            newBase.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+            newBase.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                isMouseDown = true;
+                knob.classList.add('active');
+                updateStick(e.clientX, e.clientY);
+            });
+            window.addEventListener('mousemove', (e) => { if (isMouseDown) updateStick(e.clientX, e.clientY); });
+            window.addEventListener('mouseup', () => { if (isMouseDown) resetStick(); });
+        }
+
+        function sendCmd(cmd) {
+            playSound('move');
+            if (vibrateEnabled && navigator.vibrate) navigator.vibrate(15);
+            if (conn && conn.open) conn.send(cmd);
+        }
+
+        function setupGamepadEvents() {
+            if (gamepadEventsBound) return;
+            gamepadEventsBound = true;
+
+            const bindHoldDir = (id, dir) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const press = (e) => { e.preventDefault(); el.classList.add('pressed'); sendCmd({ type: 'dir', dir: dir, active: true }); };
+                const release = (e) => { e.preventDefault(); el.classList.remove('pressed'); sendCmd({ type: 'dir', dir: dir, active: false }); };
+                el.addEventListener('touchstart', press, { passive: false });
+                el.addEventListener('touchend', release, { passive: false });
+                el.addEventListener('touchcancel', release, { passive: false });
+                el.addEventListener('mousedown', press);
+                el.addEventListener('mouseup', release);
+                el.addEventListener('mouseleave', release);
+            };
+            const bindTap = (id, cmd) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const trig = (e) => { e.preventDefault(); el.classList.add('pressed'); sendCmd(cmd); setTimeout(() => el.classList.remove('pressed'), 100); };
+                el.addEventListener('touchstart', trig, { passive: false });
+                el.addEventListener('mousedown', trig);
+            };
+
+            ['btn-up', 'psp-btn-up'].forEach(id => bindHoldDir(id, 'UP'));
+            ['btn-down', 'psp-btn-down'].forEach(id => bindHoldDir(id, 'DOWN'));
+            ['btn-left', 'psp-btn-left'].forEach(id => bindHoldDir(id, 'LEFT'));
+            ['btn-right', 'psp-btn-right'].forEach(id => bindHoldDir(id, 'RIGHT'));
+
+            bindHoldDir('btn-square', 'LEFT');
+            bindHoldDir('btn-l1', 'LEFT');
+            bindHoldDir('btn-r1', 'RIGHT');
+
+            bindTap('btn-triangle', { type: 'actionA', active: true });
+            bindTap('btn-l2', { type: 'actionA', active: true });
+            bindTap('btn-r2', { type: 'actionA', active: true });
+            bindTap('btn-select', { type: 'exit' });
+            bindTap('btn-start', { type: 'pause' });
+
+            const btnExit = document.getElementById('btn-exit-x');
+            if (btnExit) {
+                const trigExit = (e) => {
+                    e.preventDefault();
+                    btnExit.classList.add('pressed');
+                    playSound('exit');
+                    if (vibrateEnabled && navigator.vibrate) navigator.vibrate(25);
+                    if (conn && conn.open) conn.send({ type: 'exit' });
+                    else goHome();
+                    setTimeout(() => btnExit.classList.remove('pressed'), 100);
+                };
+                btnExit.addEventListener('touchstart', trigExit, { passive: false });
+                btnExit.addEventListener('mousedown', trigExit);
+            }
+
+            const btnA = document.getElementById('btn-action-a');
+            if (btnA) {
+                const press = (e) => { e.preventDefault(); btnA.classList.add('pressed'); sendCmd({ type: 'actionA', active: true }); };
+                const release = (e) => { e.preventDefault(); btnA.classList.remove('pressed'); sendCmd({ type: 'actionA', active: false }); };
+                btnA.addEventListener('touchstart', press, { passive: false });
+                btnA.addEventListener('touchend', release, { passive: false });
+                btnA.addEventListener('touchcancel', release, { passive: false });
+                btnA.addEventListener('mousedown', press);
+                btnA.addEventListener('mouseup', release);
+                btnA.addEventListener('mouseleave', release);
+            }
+
+            if (currentLayout === 'dualsense') initAnalogStick('left-stick', 'left-knob');
+            else if (currentLayout === 'psp') initAnalogStick('psp-stick', 'psp-knob');
+        }
+
+        // ================= GO HOME =================
+        function goHome() {
+            playSound('exit');
+            setPaused(false);
+            activeGame = null; isGameOver = false; particles = []; floatingTexts = [];
+            if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+            try { if (conn) { conn.close(); conn = null; } if (peer) { peer.destroy(); peer = null; } } catch(e) {}
+            document.getElementById('screen-host').classList.add('hidden');
+            document.getElementById('screen-controller').classList.add('hidden');
+            document.getElementById('connect-panel')?.classList.remove('hidden');
+            document.getElementById('gamepad-ui')?.classList.add('hidden');
+            document.getElementById('gamepad-ui')?.classList.remove('flex');
+            document.getElementById('customize-drawer')?.classList.add('hidden');
+            document.getElementById('waiting-overlay')?.classList.remove('hidden');
+            document.getElementById('menu-overlay')?.classList.add('hidden');
+            document.getElementById('gameover-overlay')?.classList.add('hidden');
+            document.getElementById('game-loading-overlay')?.classList.add('hidden');
+            role = null; roomCode = ''; score = 0; selectedMenuIndex = 0; gamepadEventsBound = false;
+            document.getElementById('screen-selection').classList.remove('hidden');
+            const led = document.getElementById('power-led');
+            if (led) led.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b] animate-pulse';
+            const badge = document.getElementById('connection-badge');
+            if (badge) { badge.className = 'text-[9px] text-amber-400 font-bold'; badge.innerText = 'بانتظار الربط'; }
+            const rd = document.getElementById('room-code-display');
+            if (rd) rd.innerText = '----';
+        }
+
+        // ================= HD GAME ENGINE (600x600) =================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 600; canvas.height = 600;
+
+        let heldDirs = { UP: false, DOWN: false, LEFT: false, RIGHT: false };
+        let selectedMenuIndex = 0, activeGame = null, isGameOver = false;
+        let score = 0, highScore = localStorage.getItem('pocketRetroHighUltra') || 0;
+        let isBoosted = false, animationFrameId = null, particles = [], floatingTexts = [], screenShake = 0;
+        document.getElementById('host-highscore').innerText = highScore;
+
+        function spawnParticles(x, y, color, count = 14) {
+            for (let i = 0; i < count; i++) particles.push({ x, y, vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8, life: 1, color, size: Math.random()*3+2 });
+        }
+        function spawnFloatingText(x, y, text, color = '#fbbf24') {
+            floatingTexts.push({ x, y, text, color, life: 1 });
+        }
+        function updateAndDrawEffects() {
+            for (let i = particles.length-1; i >= 0; i--) {
+                let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= 0.035;
+                if (p.life <= 0) { particles.splice(i,1); continue; }
+                ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+            }
+            for (let i = floatingTexts.length-1; i >= 0; i--) {
+                let f = floatingTexts[i]; f.y -= 1.2; f.life -= 0.025;
+                if (f.life <= 0) { floatingTexts.splice(i,1); continue; }
+                ctx.globalAlpha = f.life; ctx.fillStyle = f.color; ctx.font = 'bold 18px Cairo'; ctx.textAlign = 'center';
+                ctx.fillText(f.text, f.x, f.y);
+            }
+            ctx.textAlign = 'left';
+            ctx.globalAlpha = 1;
+        }
+        function applyShake() {
+            if (screenShake > 0) {
+                const dx = (Math.random()-0.5)*screenShake;
+                const dy = (Math.random()-0.5)*screenShake;
+                ctx.translate(dx, dy);
+                screenShake *= 0.85;
+                if (screenShake < 0.5) screenShake = 0;
+            }
+        }
+        function updateScore(n) {
+            score = n;
+            document.getElementById('host-score').innerText = score;
+            if (activeGame && typeof setGameHigh === 'function') setGameHigh(activeGame, score);
+            const gh = (activeGame && typeof getGameHigh === 'function') ? getGameHigh(activeGame) : highScore;
+            if (score > highScore) highScore = score;
+            if (gh > highScore) highScore = gh;
+            document.getElementById('host-highscore').innerText = Math.max(highScore, gh, score);
+            localStorage.setItem('pocketRetroHighUltra', highScore);
+            if (conn && conn.open) conn.send({ type: 'scoreUpdate', score });
+        }
+        function exitToMenu() { playSound('exit'); openGamesMenu(); }
+        function openGamesMenu() {
+            activeGame = null; isGameOver = false; particles = []; floatingTexts = [];
+            heldDirs = {UP:false,DOWN:false,LEFT:false,RIGHT:false};
+            const ch = document.getElementById('custom-html-panel'); if (ch) ch.remove();
+            const fs = document.getElementById('custom-html-fs'); if (fs) fs.remove();
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            document.getElementById('game-loading-overlay').classList.add('hidden');
+            document.getElementById('menu-overlay').classList.remove('hidden');
+            document.getElementById('menu-overlay').classList.add('flex');
+            document.getElementById('current-game-title').innerText = 'قائمة الألعاب';
+            updateScore(0); highlightMenuItem();
+            if (typeof refreshGamesMenuList === 'function') refreshGamesMenuList();
+        }
+        function highlightMenuItem() {
+            document.querySelectorAll('.game-item').forEach((item, idx) => {
+                item.className = idx === selectedMenuIndex
+                    ? 'game-item p-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-950/60 flex items-center justify-between cursor-pointer transition transform scale-[1.01]'
+                    : 'game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer transition';
+                if (idx === selectedMenuIndex && item.scrollIntoView) item.scrollIntoView({ block: 'nearest' });
+            });
+        }
+        function launchGame(name) {
+            playSound('select');
+            setPaused(false);
+            document.getElementById('menu-overlay').classList.add('hidden');
+            document.getElementById('menu-overlay').classList.remove('flex');
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            const loader = document.getElementById('game-loading-overlay');
+            const title = document.getElementById('game-loading-title');
+            loader.classList.remove('hidden'); loader.classList.add('flex');
+            title.innerText = {
+                snake: 'جاري تحميل الأفعى HD...', mario: 'جاري تجهيز عوالم سوبر بوكيت...', space: 'جاري تجهيز حرب المجرات...',
+                pong: 'جاري تجهيز بونغ نيون...', flappy: 'جاري تجهيز فلابي سيتي...', bricks: 'جاري بناء الكريستال...', dodge: 'جاري تجهيز عاصفة النيازك...', custom: 'جاري فتح محرر HTML...'
+            }[name] || 'جاري التحميل...';
+            setTimeout(() => {
+                loader.classList.add('hidden'); loader.classList.remove('flex');
+                activeGame = name; isGameOver = false; isBoosted = false; particles = []; floatingTexts = []; updateScore(0);
+                if (typeof getGameHigh === 'function') {
+                    const gh = getGameHigh(name);
+                    document.getElementById('host-highscore').innerText = gh;
+                }
+                if (name === 'snake') { document.getElementById('current-game-title').innerText = 'الأفعى النيونية HD'; initSnake(); }
+                else if (name === 'mario') { document.getElementById('current-game-title').innerText = 'سوبر بوكيت'; initMario(); }
+                else if (name === 'space') { document.getElementById('current-game-title').innerText = 'حرب المجرات'; initSpace(); }
+                else if (name === 'flappy') { document.getElementById('current-game-title').innerText = 'فلابي سيتي'; initFlappy(); }
+                else if (name === 'bricks') { document.getElementById('current-game-title').innerText = 'محطم الكريستال'; initBricks(); }
+                else if (name === 'dodge') { document.getElementById('current-game-title').innerText = 'عاصفة النيازك'; initDodge(); }
+                else if (name === 'pong') { document.getElementById('current-game-title').innerText = 'بونغ نيون'; initPong(); }
+                else if (name === 'custom') { document.getElementById('current-game-title').innerText = 'HTML مخصص'; initCustomHTML(); }
+            }, 350);
+        }
+        function restartCurrentGame() { if (activeGame) launchGame(activeGame); }
+        function showGameOver(t = 'انتهت الجولة!') {
+            isGameOver = true; playSound('gameover'); screenShake = 12;
+            if (conn && conn.open) conn.send({ type: 'vibrate', pattern: [100,50,200] });
+            document.getElementById('gameover-title').innerText = t;
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+            document.getElementById('gameover-overlay').classList.add('flex');
+        }
+
+        function handleControllerInput(data) {
+            if (data.type === 'exit') { setPaused(false); exitToMenu(); heldDirs = {UP:false,DOWN:false,LEFT:false,RIGHT:false}; return; }
+            if (data.type === 'pause') { if (activeGame && activeGame !== 'custom' && !isGameOver) setPaused(!paused); return; }
+            if (!activeGame) {
+                const items = document.querySelectorAll('.game-item');
+                if (data.type === 'dir' && data.active !== false && items.length) {
+                    if (data.dir === 'UP') { selectedMenuIndex = (selectedMenuIndex - 1 + items.length) % items.length; playSound('move'); highlightMenuItem(); }
+                    else if (data.dir === 'DOWN') { selectedMenuIndex = (selectedMenuIndex + 1) % items.length; playSound('move'); highlightMenuItem(); }
+                } else if (data.type === 'actionA' && data.active && items.length) {
+                    const el = items[Math.min(selectedMenuIndex, items.length - 1)];
+                    if (el) el.click();
+                }
+                return;
+            }
+            if (paused) { if (data.type === 'actionA' && data.active) setPaused(false); return; }
+            if (isGameOver) { if (data.type === 'actionA' && data.active) restartCurrentGame(); return; }
+            if (data.type === 'actionA') {
+                isBoosted = data.active;
+                if (activeGame === 'space' && data.active) fireSpaceLaser();
+                if (activeGame === 'mario' && data.active) marioJump();
+                if (activeGame === 'flappy' && data.active) flappyFlap();
+            }
+            if (data.type === 'dir' && data.dir) {
+                if (typeof data.active === 'boolean') heldDirs[data.dir] = data.active;
+                else { heldDirs[data.dir] = true; setTimeout(() => { heldDirs[data.dir] = false; }, 120); }
+                if (activeGame === 'mario' && data.dir === 'UP' && data.active !== false) marioJump();
+                if (activeGame === 'snake' && data.active !== false) {
+                    const d = data.dir;
+                    if (d === 'UP' && snakeVel.y !== 1) snakeNextVel = {x:0,y:-1};
+                    else if (d === 'DOWN' && snakeVel.y !== -1) snakeNextVel = {x:0,y:1};
+                    else if (d === 'LEFT' && snakeVel.x !== 1) snakeNextVel = {x:-1,y:0};
+                    else if (d === 'RIGHT' && snakeVel.x !== -1) snakeNextVel = {x:1,y:0};
+                }
+            }
+        }
+
+        // ================= PAUSE =================
+        let paused = false;
+        const _raf = window.requestAnimationFrame.bind(window);
+        window.requestAnimationFrame = (cb) => _raf((t) => {
+            if (paused && activeGame && activeGame !== 'custom') { window.requestAnimationFrame(cb); return; }
+            cb(t);
+        });
+        function setPaused(v) {
+            paused = !!v;
+            let ov = document.getElementById('pause-overlay');
+            if (paused) {
+                if (!ov) {
+                    ov = document.createElement('div');
+                    ov.id = 'pause-overlay';
+                    ov.style.cssText = 'position:absolute;inset:0;z-index:25;background:rgba(5,10,8,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#34d399;font-weight:900;';
+                    ov.innerHTML = '<div style="font-size:34px">⏸</div><div style="font-size:14px">إيقاف مؤقت</div><div style="font-size:10px;color:#94a3b8">START أو ✕ للمتابعة</div>';
+                    document.getElementById('game-area-wrap').appendChild(ov);
+                }
+                playSound('exit');
+            } else {
+                if (ov) ov.remove();
+                if (activeGame) playSound('select');
+            }
+        }
+
+        // ================= KEYBOARD =================
+        const keyMap = { ArrowUp:'UP', ArrowDown:'DOWN', ArrowLeft:'LEFT', ArrowRight:'RIGHT', w:'UP', s:'DOWN', a:'LEFT', d:'RIGHT' };
+        window.addEventListener('keydown', (e) => {
+            if (role !== 'host') return;
+            const tag = (e.target.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea') return;
+            if (e.repeat) return;
+            const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+            if (keyMap[k]) { e.preventDefault(); handleControllerInput({ type:'dir', dir:keyMap[k], active:true }); }
+            else if (k === ' ' || k === 'Enter') { e.preventDefault(); handleControllerInput({ type:'actionA', active:true }); }
+            else if (k === 'Escape') handleControllerInput({ type:'exit' });
+            else if (k === 'p') handleControllerInput({ type:'pause' });
+        });
+        window.addEventListener('keyup', (e) => {
+            if (role !== 'host') return;
+            const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+            if (keyMap[k]) handleControllerInput({ type:'dir', dir:keyMap[k], active:false });
+            else if (k === ' ' || k === 'Enter') handleControllerInput({ type:'actionA', active:false });
+        });
+
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+        }
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && role) requestWakeLock(); });
+
+        // ================= 1. SNAKE HD (600x600) =================
+        let snakeBody=[], snakeFood={x:10,y:10}, snakeVel={x:1,y:0}, snakeNextVel={x:1,y:0}, lastSnakeTime=0, pulsePhase=0;
+        function initSnake() {
+            snakeBody=[{x:10,y:10},{x:9,y:10},{x:8,y:10}]; snakeVel={x:1,y:0}; snakeNextVel={x:1,y:0};
+            spawnSnakeFood(); lastSnakeTime=0; animationFrameId=requestAnimationFrame(loopSnake);
+        }
+        function spawnSnakeFood() {
+            let tries = 0, f;
+            do { f = {x:Math.floor(Math.random()*20), y:Math.floor(Math.random()*20)}; tries++; }
+            while (tries < 200 && snakeBody.some(p => p.x === f.x && p.y === f.y));
+            snakeFood = f;
+        }
+        function loopSnake(time) {
+            if (activeGame!=='snake'||isGameOver) return;
+            animationFrameId=requestAnimationFrame(loopSnake);
+            const speed=isBoosted?15:8.5;
+            if ((time-lastSnakeTime)/1000 < 1/speed) return;
+            lastSnakeTime=time; pulsePhase+=0.3;
+            snakeVel=snakeNextVel;
+            const head={x:(snakeBody[0].x+snakeVel.x+20)%20, y:(snakeBody[0].y+snakeVel.y+20)%20};
+            for (let p of snakeBody) if (head.x===p.x&&head.y===p.y) { spawnParticles(head.x*30+15,head.y*30+15,'#f43f5e',28); showGameOver('اصطدمت الأفعى بنفسها!'); return; }
+            snakeBody.unshift(head);
+            if (head.x===snakeFood.x&&head.y===snakeFood.y) {
+                playSound('eat'); const pts = isBoosted ? 20 : 10; updateScore(score+pts);
+                spawnParticles(snakeFood.x*30+15,snakeFood.y*30+15,'#fbbf24',18);
+                spawnFloatingText(snakeFood.x*30+15, snakeFood.y*30, '+'+pts, '#fbbf24');
+                if (conn&&conn.open) conn.send({type:'vibrate',pattern:40});
+                spawnSnakeFood();
+            } else snakeBody.pop();
+
+            ctx.save();
+            applyShake();
+            const bg = ctx.createRadialGradient(300,300,50,300,300,420);
+            bg.addColorStop(0, '#0a1610'); bg.addColorStop(1, '#040806');
+            ctx.fillStyle = bg; ctx.fillRect(0,0,600,600);
+            ctx.strokeStyle='rgba(16, 185, 129, 0.08)'; ctx.lineWidth = 1;
+            for (let i=0;i<=600;i+=30) { ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,600);ctx.stroke(); ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(600,i);ctx.stroke(); }
+
+            const r=10+Math.sin(pulsePhase)*2.5;
+            ctx.shadowBlur=18; ctx.shadowColor='#fbbf24'; ctx.fillStyle='#fbbf24';
+            ctx.beginPath(); ctx.arc(snakeFood.x*30+15,snakeFood.y*30+15,r,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#10b981'; ctx.fillRect(snakeFood.x*30+14, snakeFood.y*30+3, 3, 6);
+            ctx.shadowBlur=0;
+
+            snakeBody.forEach((p,i)=>{
+                ctx.shadowBlur=i===0?16:6; ctx.shadowColor='#10b981';
+                ctx.fillStyle=i===0?'#a7f3d0': (i%2===0 ? '#10b981' : '#059669');
+                ctx.beginPath(); ctx.roundRect(p.x*30+2,p.y*30+2,26,26,9); ctx.fill();
+                if (i===0) {
+                    ctx.fillStyle = '#064e3b';
+                    ctx.beginPath(); ctx.arc(p.x*30+10, p.y*30+10, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(p.x*30+20, p.y*30+10, 3, 0, Math.PI*2); ctx.fill();
+                }
+            });
+            ctx.shadowBlur=0;
+            updateAndDrawEffects();
+            ctx.restore();
+        }
+
+        // ================= 2. GALAXY WAR (600x600) =================
+        let shipX=300, lasers=[], enemies=[], stars=[], enemyTimer=0;
+        function initSpace() {
+            shipX=300; lasers=[]; enemies=[];
+            stars=Array.from({length:60},()=>({x:Math.random()*600,y:Math.random()*600,s:Math.random()*2.5+1, c: Math.random()>0.5?'#94a3b8':'#38bdf8'}));
+            enemyTimer=0; animationFrameId=requestAnimationFrame(loopSpace);
+        }
+        function fireSpaceLaser() {
+            playSound('laser');
+            lasers.push({x:shipX-12, y:525});
+            lasers.push({x:shipX+12, y:525});
+        }
+        function loopSpace() {
+            if (activeGame!=='space'||isGameOver) return;
+            animationFrameId=requestAnimationFrame(loopSpace);
+            if (heldDirs.LEFT) shipX = Math.max(30, shipX - 7);
+            if (heldDirs.RIGHT) shipX = Math.min(570, shipX + 7);
+
+            ctx.save();
+            applyShake();
+            const bg = ctx.createLinearGradient(0,0,0,600);
+            bg.addColorStop(0, '#040610'); bg.addColorStop(1, '#0c1326');
+            ctx.fillStyle = bg; ctx.fillRect(0,0,600,600);
+
+            stars.forEach(s=>{ s.y=(s.y+s.s)%600; ctx.fillStyle=s.c; ctx.fillRect(s.x,s.y,s.s,s.s); });
+
+            enemyTimer++;
+            if (enemyTimer%40===0) {
+                enemies.push({x:Math.random()*500+50, y:-30, r:22, hp: score>200?2:1, speed:2.6+Math.min(4,score/120), rot:0});
+            }
+
+            ctx.fillStyle='#38bdf8'; ctx.shadowBlur=14; ctx.shadowColor='#38bdf8';
+            for (let i=lasers.length-1;i>=0;i--) {
+                lasers[i].y-=12;
+                ctx.beginPath(); ctx.roundRect(lasers[i].x-2.5, lasers[i].y, 5, 20, 3); ctx.fill();
+                if(lasers[i].y<0) lasers.splice(i,1);
+            }
+            ctx.shadowBlur=0;
+
+            for (let i=enemies.length-1;i>=0;i--) {
+                let en=enemies[i]; en.y+=en.speed; en.rot += 0.04;
+                ctx.save(); ctx.translate(en.x, en.y); ctx.rotate(en.rot);
+                ctx.fillStyle = en.hp > 1 ? '#a855f7' : '#f43f5e';
+                ctx.shadowBlur = 12; ctx.shadowColor = ctx.fillStyle;
+                ctx.beginPath();
+                for(let k=0;k<6;k++){
+                    const a = k*Math.PI/3;
+                    const rad = k%2===0 ? en.r : en.r*0.7;
+                    ctx.lineTo(Math.cos(a)*rad, Math.sin(a)*rad);
+                }
+                ctx.closePath(); ctx.fill();
+                ctx.restore();
+
+                for (let j=lasers.length-1;j>=0;j--) {
+                    if (Math.hypot(lasers[j].x-en.x,lasers[j].y-en.y)<en.r+8) {
+                        lasers.splice(j,1);
+                        en.hp--;
+                        if (en.hp <= 0) {
+                            playSound('explosion'); screenShake = 6;
+                            spawnParticles(en.x,en.y,'#fb923c',22); updateScore(score+25);
+                            spawnFloatingText(en.x, en.y, '+25', '#fb923c');
+                            if(conn&&conn.open) conn.send({type:'vibrate',pattern:35});
+                            enemies.splice(i,1);
+                        } else {
+                            playSound('hit'); spawnParticles(en.x,en.y,'#c084fc',8);
+                        }
+                        break;
+                    }
+                }
+                if (en&&en.y>585) { showGameOver('اخترق العدو خط الدفاع!'); return; }
+            }
+
+            ctx.shadowBlur=18; ctx.shadowColor='#10b981';
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath(); ctx.moveTo(shipX-8,572); ctx.lineTo(shipX, 588 + Math.random()*10); ctx.lineTo(shipX+8,572); ctx.fill();
+            ctx.fillStyle='#059669';
+            ctx.beginPath(); ctx.moveTo(shipX,530); ctx.lineTo(shipX-30,575); ctx.lineTo(shipX+30,575); ctx.closePath(); ctx.fill();
+            ctx.fillStyle='#34d399';
+            ctx.beginPath(); ctx.moveTo(shipX,515); ctx.lineTo(shipX-12,575); ctx.lineTo(shipX+12,575); ctx.closePath(); ctx.fill();
+            ctx.fillStyle='#38bdf8';
+            ctx.beginPath(); ctx.ellipse(shipX, 548, 5, 11, 0, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur=0;
+
+            updateAndDrawEffects();
+            ctx.restore();
+        }
+
+        // ================= 3. CRYSTAL BREAKER (600x600) =================
+        let brickPaddleX=230, brickPaddleW=140, brickBall={x:300,y:450,vx:5,vy:-5}, bricks=[];
+        function initBricks() {
+            brickPaddleX=230; brickBall={x:300,y:450,vx:5.2,vy:-5.2}; bricks=[];
+            const colors=['#f43f5e','#fb923c','#facc15','#34d399','#38bdf8'];
+            for (let r=0;r<5;r++) for (let c=0;c<7;c++) bricks.push({x:c*82+16,y:r*34+35,w:74,h:24,active:true,color:colors[r]});
+            animationFrameId=requestAnimationFrame(loopBricks);
+        }
+        function loopBricks() {
+            if (activeGame!=='bricks'||isGameOver) return;
+            animationFrameId=requestAnimationFrame(loopBricks);
+            if (heldDirs.LEFT) brickPaddleX = Math.max(0, brickPaddleX - 8.5);
+            if (heldDirs.RIGHT) brickPaddleX = Math.min(600 - brickPaddleW, brickPaddleX + 8.5);
+            const mult=isBoosted?1.4:1;
+            brickBall.x+=brickBall.vx*mult; brickBall.y+=brickBall.vy*mult;
+            if (brickBall.x<=10||brickBall.x>=590) { brickBall.vx*=-1; playSound('hit'); }
+            if (brickBall.y<=10) { brickBall.vy*=-1; playSound('hit'); }
+            if (brickBall.y>=554&&brickBall.x>=brickPaddleX&&brickBall.x<=brickPaddleX+brickPaddleW) {
+                const hitPos = (brickBall.x - (brickPaddleX + brickPaddleW/2)) / (brickPaddleW/2);
+                brickBall.vx = hitPos * 6.5;
+                brickBall.vy = -Math.abs(brickBall.vy);
+                playSound('hit'); spawnParticles(brickBall.x,554,'#38bdf8',10);
+            }
+            if (brickBall.y>600) { showGameOver('سقطت كرة الطاقة!'); return; }
+            let rem=0;
+            for (let b of bricks) {
+                if (!b.active) continue; rem++;
+                if (brickBall.x+8>=b.x&&brickBall.x-8<=b.x+b.w&&brickBall.y+8>=b.y&&brickBall.y-8<=b.y+b.h) {
+                    b.active=false; brickBall.vy*=-1; playSound('eat'); screenShake = 4;
+                    spawnParticles(b.x+b.w/2,b.y+b.h/2,b.color,18); updateScore(score+20);
+                    if(conn&&conn.open) conn.send({type:'vibrate',pattern:35}); rem--;
+                }
+            }
+            if (rem===0) { showGameOver('انتصار أسطوري! 🏆'); return; }
+
+            ctx.save(); applyShake();
+            ctx.fillStyle='#070b14'; ctx.fillRect(0,0,600,600);
+            for (let b of bricks) if (b.active) {
+                ctx.fillStyle=b.color; ctx.shadowBlur=8; ctx.shadowColor=b.color;
+                ctx.beginPath(); ctx.roundRect(b.x,b.y,b.w,b.h,7); ctx.fill();
+                ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.fillRect(b.x+4, b.y+3, b.w-8, 5);
+            }
+            ctx.shadowBlur=14; ctx.shadowColor='#38bdf8'; ctx.fillStyle='#38bdf8';
+            ctx.beginPath(); ctx.roundRect(brickPaddleX,560,brickPaddleW,16,8); ctx.fill();
+            ctx.fillStyle='#fff'; ctx.shadowColor='#fff'; ctx.beginPath(); ctx.arc(brickBall.x,brickBall.y,10,0,Math.PI*2); ctx.fill();
+            ctx.shadowBlur=0; updateAndDrawEffects(); ctx.restore();
+        }
+
+        // ================= 4. SUPER POCKET ADVENTURE (MULTI-WORLD SIDE-SCROLLER) =================
+        let marioX=80, marioY=420, marioVY=0, marioOnGround=false, coinSpin=0, marioCamX=0, marioFacing=1;
+        let marioWorld=1, marioPlatforms=[], marioBlocks=[], marioCoins=[], marioEnemies=[], marioFlagX=1800, marioLives=3;
+
+        const MARIO_WORLDS = {
+            1: {
+                name: 'العالم 1: مروج الفطر 🌿',
+                skyTop: '#2563eb', skyBot: '#93c5fd',
+                groundTop: '#16a34a', groundBot: '#78350f',
+                platTop: '#22c55e', platBot: '#92400e',
+                flagX: 1850,
+                platforms: [
+                    {x:0,y:540,w:650,h:60}, {x:730,y:540,w:520,h:60}, {x:1340,y:540,w:660,h:60},
+                    {x:220,y:420,w:140,h:22}, {x:440,y:340,w:130,h:22}, {x:820,y:410,w:150,h:22},
+                    {x:1040,y:310,w:140,h:22}, {x:1420,y:410,w:130,h:22}, {x:1610,y:320,w:130,h:22}
+                ],
+                blocks: [
+                    {x:270,y:300,hit:false}, {x:485,y:220,hit:false}, {x:880,y:290,hit:false}, {x:1470,y:290,hit:false}
+                ],
+                coins: [
+                    {x:250,y:380},{x:290,y:380},{x:330,y:380},{x:470,y:300},{x:510,y:300},
+                    {x:690,y:450},{x:860,y:370},{x:910,y:370},{x:1080,y:270},{x:1120,y:270},
+                    {x:1295,y:440},{x:1460,y:370},{x:1650,y:280},{x:1690,y:280}
+                ],
+                enemies: [
+                    {x:380,y:510,minX:200,maxX:600,dir:1,spd:1.8},
+                    {x:900,y:510,minX:750,maxX:1200,dir:-1,spd:2.1},
+                    {x:1500,y:510,minX:1360,maxX:1760,dir:1,spd:2.3}
+                ]
+            },
+            2: {
+                name: 'العالم 2: كهوف الحمم 🌋',
+                skyTop: '#1e1b4b', skyBot: '#7f1d1d',
+                groundTop: '#dc2626', groundBot: '#27272a',
+                platTop: '#f97316', platBot: '#3f3f46',
+                flagX: 2050,
+                platforms: [
+                    {x:0,y:540,w:450,h:60}, {x:550,y:540,w:380,h:60}, {x:1040,y:540,w:420,h:60}, {x:1570,y:540,w:630,h:60},
+                    {x:180,y:410,w:120,h:22}, {x:360,y:310,w:110,h:22}, {x:630,y:400,w:130,h:22},
+                    {x:850,y:300,w:120,h:22}, {x:1150,y:390,w:130,h:22}, {x:1350,y:280,w:120,h:22},
+                    {x:1680,y:400,w:130,h:22}, {x:1860,y:300,w:120,h:22}
+                ],
+                blocks: [
+                    {x:220,y:290,hit:false}, {x:680,y:280,hit:false}, {x:1200,y:270,hit:false}, {x:1730,y:280,hit:false}
+                ],
+                coins: [
+                    {x:210,y:370},{x:260,y:370},{x:395,y:270},{x:500,y:430},{x:670,y:360},
+                    {x:890,y:260},{x:985,y:420},{x:1190,y:350},{x:1390,y:240},{x:1515,y:420},
+                    {x:1720,y:360},{x:1900,y:260},{x:1940,y:260}
+                ],
+                enemies: [
+                    {x:280,y:510,minX:150,maxX:410,dir:1,spd:2.4},
+                    {x:720,y:510,minX:560,maxX:890,dir:-1,spd:2.6},
+                    {x:1220,y:510,minX:1060,maxX:1420,dir:1,spd:2.8},
+                    {x:1750,y:510,minX:1590,maxX:1960,dir:-1,spd:3.0}
+                ]
+            },
+            3: {
+                name: 'العالم 3: قلعة السماء 🏰',
+                skyTop: '#0f172a', skyBot: '#4c1d95',
+                groundTop: '#fbbf24', groundBot: '#312e81',
+                platTop: '#38bdf8', platBot: '#1e3a8a',
+                flagX: 2250,
+                platforms: [
+                    {x:0,y:540,w:380,h:60}, {x:480,y:460,w:140,h:22}, {x:710,y:380,w:140,h:22},
+                    {x:940,y:470,w:260,h:24}, {x:1290,y:370,w:140,h:22}, {x:1520,y:280,w:140,h:22},
+                    {x:1750,y:390,w:150,h:22}, {x:1980,y:540,w:420,h:60}
+                ],
+                blocks: [
+                    {x:530,y:340,hit:false}, {x:1050,y:350,hit:false}, {x:1570,y:160,hit:false}, {x:2050,y:420,hit:false}
+                ],
+                coins: [
+                    {x:220,y:500},{x:270,y:500},{x:530,y:420},{x:760,y:340},{x:1010,y:430},
+                    {x:1070,y:430},{x:1130,y:430},{x:1340,y:330},{x:1570,y:240},{x:1800,y:350},
+                    {x:2080,y:500},{x:2130,y:500},{x:2180,y:500}
+                ],
+                enemies: [
+                    {x:240,y:510,minX:120,maxX:340,dir:1,spd:2.6},
+                    {x:1050,y:440,minX:950,maxX:1160,dir:-1,spd:2.8},
+                    {x:2100,y:510,minX:1990,maxX:2210,dir:1,spd:3.2}
+                ]
+            }
+        };
+
+        function loadMarioWorld(wNum) {
+            marioWorld = wNum;
+            const w = MARIO_WORLDS[wNum];
+            marioX = 70; marioY = 420; marioVY = 0; marioCamX = 0; marioOnGround = false;
+            marioFlagX = w.flagX;
+            marioPlatforms = w.platforms.map(p => ({...p}));
+            marioBlocks = w.blocks.map(b => ({...b, hit: false}));
+            marioCoins = w.coins.map(c => ({...c, got: false}));
+            marioEnemies = w.enemies.map(e => ({...e, w: 32, h: 30, alive: true}));
+            document.getElementById('current-game-title').innerText = w.name;
+            spawnFloatingText(300, 260, w.name, '#fbbf24');
+        }
+
+        function initMario() {
+            marioLives = 3;
+            loadMarioWorld(1);
+            animationFrameId = requestAnimationFrame(loopMario);
+        }
+        function marioJump() {
+            if (marioOnGround) {
+                marioVY = -14.2;
+                marioOnGround = false;
+                playSound('move');
+                spawnParticles(marioX - marioCamX + 16, marioY + 42, '#fff', 7);
+            }
+        }
+        function respawnMarioInWorld() {
+            marioLives--;
+            screenShake = 12;
+            playSound('explosion');
+            if (conn && conn.open) conn.send({ type: 'vibrate', pattern: [80, 40, 80] });
+            if (marioLives <= 0) {
+                showGameOver('نفدت المحاولات! حاول مجدداً');
+                return true;
+            }
+            marioX = 70; marioY = 400; marioVY = 0; marioCamX = 0;
+            spawnFloatingText(300, 280, 'تبقى ' + marioLives + ' محاولات', '#f43f5e');
+            return false;
+        }
+        function loopMario() {
+            if (activeGame !== 'mario' || isGameOver) return;
+            animationFrameId = requestAnimationFrame(loopMario);
+            coinSpin += 0.12;
+
+            const moveSpd = isBoosted ? 7.5 : 5.2;
+            if (heldDirs.LEFT) { marioX = Math.max(10, marioX - moveSpd); marioFacing = -1; }
+            if (heldDirs.RIGHT) { marioX = Math.min(marioFlagX + 80, marioX + moveSpd); marioFacing = 1; }
+
+            marioVY += 0.62;
+            marioY += marioVY;
+            marioOnGround = false;
+
+            for (let p of marioPlatforms) {
+                if (marioX+26 > p.x && marioX+4 < p.x+p.w && marioY+42 >= p.y && marioY+42 <= p.y+p.h+16 && marioVY >= 0) {
+                    marioY = p.y - 42;
+                    marioVY = 0;
+                    marioOnGround = true;
+                }
+            }
+
+            for (let b of marioBlocks) {
+                if (marioX+26 > b.x && marioX+4 < b.x+34) {
+                    if (marioY+42 >= b.y && marioY+42 <= b.y+18 && marioVY >= 0) {
+                        marioY = b.y - 42; marioVY = 0; marioOnGround = true;
+                    }
+                    else if (marioY <= b.y+34 && marioY >= b.y+14 && marioVY < 0) {
+                        marioY = b.y + 34;
+                        marioVY = 2;
+                        if (!b.hit) {
+                            b.hit = true;
+                            playSound('eat');
+                            updateScore(score + 50);
+                            spawnParticles(b.x - marioCamX + 17, b.y, '#fbbf24', 18);
+                            spawnFloatingText(b.x - marioCamX + 17, b.y - 15, '+50 🎁', '#fbbf24');
+                            if (conn && conn.open) conn.send({ type: 'vibrate', pattern: 40 });
+                        } else {
+                            playSound('hit');
+                        }
+                    }
+                }
+            }
+
+            const targetCam = Math.max(0, Math.min(marioFlagX - 420, marioX - 220));
+            marioCamX += (targetCam - marioCamX) * 0.14;
+
+            if (marioY > 620) {
+                if (respawnMarioInWorld()) return;
+            }
+
+            for (let c of marioCoins) {
+                if (!c.got && Math.hypot(marioX+16 - c.x, marioY+21 - c.y) < 32) {
+                    c.got = true;
+                    playSound('eat');
+                    updateScore(score + 20);
+                    spawnParticles(c.x - marioCamX, c.y, '#fbbf24', 14);
+                    spawnFloatingText(c.x - marioCamX, c.y - 12, '+20', '#fbbf24');
+                }
+            }
+
+            for (let e of marioEnemies) {
+                if (!e.alive) continue;
+                e.x += e.dir * e.spd;
+                if (e.x < e.minX || e.x > e.maxX) e.dir *= -1;
+                if (marioX+26 > e.x && marioX+4 < e.x+e.w && marioY+42 > e.y && marioY+8 < e.y+e.h) {
+                    if (marioVY > 0 && marioY+32 < e.y+14) {
+                        e.alive = false;
+                        marioVY = -10;
+                        playSound('explosion');
+                        updateScore(score + 50);
+                        spawnParticles(e.x - marioCamX + 16, e.y + 15, '#f43f5e', 18);
+                        spawnFloatingText(e.x - marioCamX + 16, e.y - 10, '+50', '#f43f5e');
+                    } else {
+                        if (respawnMarioInWorld()) return;
+                        break;
+                    }
+                }
+            }
+
+            if (marioX + 24 >= marioFlagX) {
+                playSound('connect');
+                updateScore(score + 150);
+                spawnParticles(marioFlagX - marioCamX, 380, '#34d399', 30);
+                if (marioWorld < 3) {
+                    loadMarioWorld(marioWorld + 1);
+                    return;
+                } else {
+                    showGameOver('أنهيت جميع العوالم الثلاثة! بطل 🏆');
+                    return;
+                }
+            }
+
+            const wTheme = MARIO_WORLDS[marioWorld];
+            ctx.save();
+            applyShake();
+
+            const sky = ctx.createLinearGradient(0,0,0,600);
+            sky.addColorStop(0, wTheme.skyTop); sky.addColorStop(1, wTheme.skyBot);
+            ctx.fillStyle = sky; ctx.fillRect(0, 0, 600, 600);
+
+            ctx.fillStyle = marioWorld === 2 ? 'rgba(251, 146, 60, 0.25)' : 'rgba(255,255,255,0.65)';
+            for (let i = 0; i < 6; i++) {
+                const cx = ((i * 260 - marioCamX * 0.35) % 1400 + 1400) % 1400 - 100;
+                const cy = 75 + (i % 3) * 45;
+                ctx.beginPath(); ctx.arc(cx, cy, 22, 0, Math.PI*2); ctx.arc(cx+24, cy-5, 28, 0, Math.PI*2); ctx.arc(cx+50, cy+2, 20, 0, Math.PI*2); ctx.fill();
+            }
+
+            if (marioWorld === 2) {
+                ctx.fillStyle = '#ef4444'; ctx.fillRect(0, 582, 600, 18);
+            }
+
+            ctx.save();
+            ctx.translate(-marioCamX, 0);
+
+            for (let p of marioPlatforms) {
+                ctx.fillStyle = p.y >= 540 ? wTheme.groundBot : wTheme.platBot;
+                ctx.beginPath(); ctx.roundRect(p.x, p.y, p.w, p.h, p.y >= 540 ? 0 : 6); ctx.fill();
+                ctx.fillStyle = p.y >= 540 ? wTheme.groundTop : wTheme.platTop;
+                ctx.beginPath(); ctx.roundRect(p.x, p.y, p.w, p.y >= 540 ? 12 : 7, 4); ctx.fill();
+            }
+
+            for (let b of marioBlocks) {
+                ctx.fillStyle = b.hit ? '#64748b' : '#f59e0b';
+                ctx.beginPath(); ctx.roundRect(b.x, b.y, 34, 34, 6); ctx.fill();
+                ctx.strokeStyle = '#fef3c7'; ctx.lineWidth = 2; ctx.strokeRect(b.x+2, b.y+2, 30, 30);
+                if (!b.hit) {
+                    ctx.fillStyle = '#fff'; ctx.font = '900 20px Cairo'; ctx.textAlign = 'center';
+                    ctx.fillText('؟', b.x + 17, b.y + 24);
+                }
+            }
+            ctx.textAlign = 'left';
+
+            ctx.fillStyle = '#cbd5e1'; ctx.fillRect(marioFlagX, 320, 8, 220);
+            ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(marioFlagX+4, 316, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath(); ctx.moveTo(marioFlagX+8, 326); ctx.lineTo(marioFlagX+58, 344); ctx.lineTo(marioFlagX+8, 362); ctx.fill();
+
+            for (let c of marioCoins) {
+                if (c.got) continue;
+                const w = Math.max(4, Math.abs(Math.cos(coinSpin)) * 12);
+                ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.ellipse(c.x, c.y, w, 12, 0, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#d97706'; ctx.lineWidth = 2; ctx.stroke();
+            }
+
+            for (let e of marioEnemies) {
+                if (!e.alive) continue;
+                ctx.fillStyle = marioWorld === 2 ? '#991b1b' : '#78350f';
+                ctx.beginPath(); ctx.ellipse(e.x+16, e.y+18, 17, 14, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.fillRect(e.x+8, e.y+10, 5, 6); ctx.fillRect(e.x+20, e.y+10, 5, 6);
+                ctx.fillStyle = '#000'; ctx.fillRect(e.x+10, e.y+12, 2, 3); ctx.fillRect(e.x+22, e.y+12, 2, 3);
+            }
+
+            ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.roundRect(marioX+4, marioY, 24, 14, 5); ctx.fill();
+            ctx.fillStyle = '#fed7aa'; ctx.beginPath(); ctx.roundRect(marioX+6, marioY+12, 20, 14, 4); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.fillRect(marioFacing === 1 ? marioX+20 : marioX+9, marioY+15, 3, 4);
+            ctx.fillStyle = '#1d4ed8'; ctx.beginPath(); ctx.roundRect(marioX+4, marioY+25, 24, 17, 4); ctx.fill();
+
+            ctx.restore();
+
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.beginPath(); ctx.roundRect(12, 12, 195, 30, 8); ctx.fill();
+            ctx.font = 'bold 14px Cairo'; ctx.fillStyle = '#fff';
+            ctx.fillText('العالم ' + marioWorld + '/3  |  ' + '❤️'.repeat(marioLives), 22, 32);
+
+            updateAndDrawEffects();
+            ctx.restore();
+        }
+
+        // ================= 5. FLAPPY CITY (600x600) =================
+        let flappyY=280, flappyVY=0, flappyPipes=[], flappyTimer=0;
+        function initFlappy() { flappyY=280; flappyVY=0; flappyPipes=[]; flappyTimer=0; animationFrameId = requestAnimationFrame(loopFlappy); }
+        function flappyFlap() { flappyVY = -9.2; playSound('move'); spawnParticles(120, flappyY+20, '#fde047', 6); }
+        function loopFlappy() {
+            if (activeGame !== 'flappy' || isGameOver) return;
+            animationFrameId = requestAnimationFrame(loopFlappy);
+            flappyVY += 0.5; flappyY += flappyVY;
+            flappyTimer++;
+            if (flappyTimer % 85 === 0) {
+                const gap = 155 + Math.random()*45;
+                const topH = 90 + Math.random()*220;
+                flappyPipes.push({ x: 630, top: topH, gap: gap, passed: false });
+            }
+            for (let i = flappyPipes.length-1; i >= 0; i--) {
+                let p = flappyPipes[i]; p.x -= 4.2;
+                if (!p.passed && p.x < 120) { p.passed = true; updateScore(score + 10); playSound('eat'); spawnFloatingText(130, flappyY, '+10', '#34d399'); }
+                if (p.x < -70) flappyPipes.splice(i, 1);
+                if (135 > p.x && 115 < p.x+56) {
+                    if (flappyY < p.top || flappyY+28 > p.top + p.gap) { showGameOver('اصطدمت بالبرج!'); return; }
+                }
+            }
+            if (flappyY < 0 || flappyY > 570) { showGameOver('خرجت من المسار!'); return; }
+
+            const sky = ctx.createLinearGradient(0,0,0,600);
+            sky.addColorStop(0, '#090d16'); sky.addColorStop(1, '#1e293b');
+            ctx.fillStyle = sky; ctx.fillRect(0,0,600,600);
+            ctx.fillStyle = '#0f172a';
+            for(let b=0;b<10;b++) ctx.fillRect(b*65, 460 + (b%3)*30, 55, 140);
+
+            for (let p of flappyPipes) {
+                const g = ctx.createLinearGradient(p.x,0,p.x+56,0);
+                g.addColorStop(0, '#059669'); g.addColorStop(0.5, '#34d399'); g.addColorStop(1, '#047857');
+                ctx.fillStyle = g;
+                ctx.fillRect(p.x, 0, 56, p.top);
+                ctx.fillRect(p.x, p.top + p.gap, 56, 600 - p.top - p.gap);
+                ctx.fillStyle = '#6ee7b7';
+                ctx.fillRect(p.x-4, p.top-16, 64, 16);
+                ctx.fillRect(p.x-4, p.top+p.gap, 64, 16);
+            }
+            ctx.save();
+            ctx.translate(130, flappyY+14);
+            ctx.rotate(Math.min(0.5, Math.max(-0.5, flappyVY*0.05)));
+            ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.ellipse(0, 0, 20, 15, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(8, -4, 5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(10, -4, 2.5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#f97316'; ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(28, 3); ctx.lineTo(16, 7); ctx.fill();
+            ctx.restore();
+            updateAndDrawEffects();
+        }
+
+        // ================= 6. METEOR STORM (600x600) =================
+        let dodgeX=300, dodgeMeteors=[], dodgeTimer=0;
+        function initDodge() { dodgeX=300; dodgeMeteors=[]; dodgeTimer=0; animationFrameId = requestAnimationFrame(loopDodge); }
+        function loopDodge() {
+            if (activeGame !== 'dodge' || isGameOver) return;
+            animationFrameId = requestAnimationFrame(loopDodge);
+            if (heldDirs.LEFT) dodgeX = Math.max(30, dodgeX - 7.5);
+            if (heldDirs.RIGHT) dodgeX = Math.min(570, dodgeX + 7.5);
+            dodgeTimer++;
+            if (dodgeTimer % 24 === 0) {
+                dodgeMeteors.push({ x: Math.random()*540+30, y: -30, r: 18 + Math.random()*20, spd: 3.8 + Math.random()*3.5 + Math.min(4.5, score/70) });
+            }
+            ctx.fillStyle = '#070811'; ctx.fillRect(0,0,600,600);
+            for (let i = dodgeMeteors.length-1; i >= 0; i--) {
+                let m = dodgeMeteors[i]; m.y += m.spd;
+                const grad = ctx.createLinearGradient(m.x, m.y-m.r*2.5, m.x, m.y);
+                grad.addColorStop(0, 'transparent'); grad.addColorStop(1, 'rgba(249, 115, 22, 0.5)');
+                ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(m.x-m.r*0.8, m.y); ctx.lineTo(m.x, m.y-m.r*2.8); ctx.lineTo(m.x+m.r*0.8, m.y); ctx.fill();
+
+                ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(m.x-m.r*0.3, m.y-m.r*0.3, m.r*0.35, 0, Math.PI*2); ctx.fill();
+
+                if (Math.hypot(m.x - dodgeX, m.y - 540) < m.r + 18) { showGameOver('اصطدمت بنيزك ملتهب!'); return; }
+                if (m.y > 630) { dodgeMeteors.splice(i, 1); updateScore(score + 5); }
+            }
+            ctx.fillStyle = '#38bdf8'; ctx.shadowBlur = 14; ctx.shadowColor = '#38bdf8';
+            ctx.beginPath(); ctx.moveTo(dodgeX, 515); ctx.lineTo(dodgeX-22, 560); ctx.lineTo(dodgeX, 546); ctx.lineTo(dodgeX+22, 560); ctx.closePath(); ctx.fill();
+            ctx.shadowBlur = 0; updateAndDrawEffects();
+        }
+
+        // ================= 7. NEON PONG (600x600) =================
+        let pongY=255, pongAI=255, pongBall={x:300,y:300,vx:6,vy:3.5}, pongLives=3;
+        function initPong() { pongY=255; pongAI=255; pongLives=3; resetPongBall(1); animationFrameId = requestAnimationFrame(loopPong); }
+        function resetPongBall(dir) { pongBall = { x:300, y:300, vx:6*dir, vy:(Math.random()<0.5?-1:1)*(3+Math.random()*2) }; }
+        function loopPong() {
+            if (activeGame !== 'pong' || isGameOver) return;
+            animationFrameId = requestAnimationFrame(loopPong);
+            const H = 90, spd = isBoosted ? 11 : 8;
+            if (heldDirs.UP || heldDirs.LEFT) pongY = Math.max(0, pongY - spd);
+            if (heldDirs.DOWN || heldDirs.RIGHT) pongY = Math.min(600 - H, pongY + spd);
+            const aiSpd = 4 + Math.min(3.5, score / 100);
+            const target = pongBall.y - H/2;
+            if (Math.abs(target - pongAI) > 8) pongAI += Math.sign(target - pongAI) * aiSpd;
+            pongAI = Math.max(0, Math.min(600 - H, pongAI));
+            pongBall.x += pongBall.vx; pongBall.y += pongBall.vy;
+            if (pongBall.y <= 10 || pongBall.y >= 590) { pongBall.vy *= -1; playSound('hit'); }
+            if (pongBall.vx < 0 && pongBall.x <= 40 && pongBall.x >= 20 && pongBall.y >= pongY && pongBall.y <= pongY + H) {
+                pongBall.vx = Math.min(13, Math.abs(pongBall.vx) * 1.06); playSound('hit'); updateScore(score + 10); spawnParticles(pongBall.x, pongBall.y, '#38bdf8', 12);
+            }
+            if (pongBall.vx > 0 && pongBall.x >= 560 && pongBall.x <= 580 && pongBall.y >= pongAI && pongBall.y <= pongAI + H) {
+                pongBall.vx = -Math.min(13, Math.abs(pongBall.vx) * 1.04); playSound('hit'); spawnParticles(pongBall.x, pongBall.y, '#f43f5e', 12);
+            }
+            if (pongBall.x < -15) {
+                pongLives--; playSound('explosion'); screenShake = 10;
+                if (pongLives <= 0) { showGameOver('خسرت أمام الكمبيوتر!'); return; }
+                resetPongBall(1);
+            }
+            if (pongBall.x > 615) { updateScore(score + 30); playSound('eat'); spawnFloatingText(300, 300, '+30 هدف!', '#34d399'); resetPongBall(-1); }
+            ctx.fillStyle = '#070b14'; ctx.fillRect(0,0,600,600);
+            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 3; ctx.setLineDash([12,14]); ctx.beginPath(); ctx.moveTo(300,0); ctx.lineTo(300,600); ctx.stroke(); ctx.setLineDash([]);
+            ctx.shadowBlur = 14; ctx.shadowColor = '#38bdf8'; ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.roundRect(22, pongY, 14, H, 7); ctx.fill();
+            ctx.shadowColor = '#f43f5e'; ctx.fillStyle = '#f43f5e'; ctx.beginPath(); ctx.roundRect(564, pongAI, 14, H, 7); ctx.fill();
+            ctx.shadowColor = '#fff'; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(pongBall.x, pongBall.y, 10, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.font = '20px sans-serif'; ctx.fillStyle = '#fbbf24'; ctx.fillText('❤'.repeat(pongLives), 20, 32);
+            updateAndDrawEffects();
+        }
+
+        // ================= SAVE & HTML CUSTOM =================
+        function loadSavedGames() { try { return JSON.parse(localStorage.getItem('pocketRetroSavedGamesUltra') || '[]'); } catch(e) { return []; } }
+        function persistSavedGames(list) { localStorage.setItem('pocketRetroSavedGamesUltra', JSON.stringify(list)); }
+        function getGameHigh(id) { try { const all = JSON.parse(localStorage.getItem('pocketRetroHighsUltra') || '{}'); return all[id] || 0; } catch(e) { return 0; } }
+        function setGameHigh(id, val) {
+            try {
+                const all = JSON.parse(localStorage.getItem('pocketRetroHighsUltra') || '{}');
+                if (!all[id] || val > all[id]) { all[id] = val; localStorage.setItem('pocketRetroHighsUltra', JSON.stringify(all)); }
+            } catch(e) {}
+        }
+        function refreshGamesMenuList() {
+            const listEl = document.getElementById('games-list');
+            if (!listEl) return;
+            listEl.querySelectorAll('[data-saved="1"]').forEach(n => n.remove());
+            loadSavedGames().forEach((g) => {
+                const div = document.createElement('div');
+                div.setAttribute('data-saved', '1');
+                div.className = 'game-item p-1.5 rounded-lg border border-cyan-700 bg-cyan-950/40 flex items-center justify-between cursor-pointer';
+                div.onclick = () => launchSavedGame(g.id);
+                div.innerHTML = `<div class="flex items-center gap-2"><div class="w-7 h-7 rounded bg-cyan-900 flex items-center justify-center text-sm">💾</div><div class="text-right"><span class="block text-[11px] font-black text-white">${String(g.name || 'لعبة محفوظة')}</span><span class="text-[9px] text-cyan-300">HTML مخصص</span></div></div><i class="fa-solid fa-play text-[10px] text-cyan-400"></i>`;
+                listEl.appendChild(div);
+            });
+        }
+        function launchSavedGame(id) {
+            const g = loadSavedGames().find(x => x.id === id);
+            if (!g) return;
+            playSound('select');
+            document.getElementById('menu-overlay').classList.add('hidden');
+            document.getElementById('menu-overlay').classList.remove('flex');
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            activeGame = 'custom';
+            document.getElementById('current-game-title').innerText = g.name || 'HTML محفوظ';
+            initCustomHTML(g.code, g.name, true);
+        }
+
+        function initCustomHTML(prefillCode, prefillName, runImmediately) {
+            if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+            ctx.fillStyle = '#060a08'; ctx.fillRect(0,0,600,600);
+            let existing = document.getElementById('custom-html-panel');
+            if (existing) existing.remove();
+            const fsOld = document.getElementById('custom-html-fs');
+            if (fsOld) fsOld.remove();
+
+            const panel = document.createElement('div');
+            panel.id = 'custom-html-panel';
+            panel.style.cssText = 'position:absolute;inset:0;z-index:40;background:#060a08;display:flex;flex-direction:column;padding:6px;gap:5px;';
+            panel.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+                    <span style="color:#34d399;font-weight:900;font-size:11px;">مشغل HTML مخصص</span>
+                    <div style="display:flex;gap:4px;">
+                        <button id="custom-html-fs-btn" style="background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:bold;">تكبير ⛶</button>
+                        <button id="custom-html-pin" style="background:#0f766e;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:bold;">تثبيت 📌</button>
+                        <button id="custom-html-close" style="background:#be123c;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:bold;">إغلاق</button>
+                    </div>
+                </div>
+                <input id="custom-html-name" type="text" maxlength="40" placeholder="اسم اللعبة" value="${(prefillName||'').replace(/"/g,'&quot;')}" style="background:#020617;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:11px;width:100%;" dir="rtl">
+                <textarea id="custom-html-input" dir="ltr" placeholder="الصق كود HTML هنا..." style="flex:1;min-height:45px;background:#020617;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px;font-size:10px;font-family:monospace;resize:none;"></textarea>
+                <button id="custom-html-run" style="background:#059669;color:#fff;border:none;border-radius:6px;padding:6px;font-weight:bold;font-size:11px;">تشغيل ▶</button>
+                <iframe id="custom-html-frame" sandbox="allow-scripts" style="flex:2;min-height:80px;width:100%;border:1px solid #334155;border-radius:6px;background:#fff;"></iframe>
+            `;
+            const wrap = document.getElementById('game-area-wrap');
+            wrap.style.position = 'relative';
+            wrap.appendChild(panel);
+
+            const input = document.getElementById('custom-html-input');
+            if (prefillCode) input.value = prefillCode;
+
+            document.getElementById('custom-html-close').onclick = () => {
+                panel.remove();
+                const fs = document.getElementById('custom-html-fs'); if (fs) fs.remove();
+                exitToMenu();
+            };
+
+            const runCode = () => { document.getElementById('custom-html-frame').srcdoc = input.value; playSound('select'); };
+            document.getElementById('custom-html-run').onclick = runCode;
+
+            document.getElementById('custom-html-pin').onclick = () => {
+                const code = input.value.trim();
+                if (!code) { showMessage('الصق كود HTML أولاً', true); return; }
+                const name = (document.getElementById('custom-html-name').value || 'لعبة HTML').trim().slice(0, 40);
+                const list = loadSavedGames();
+                list.push({ id: 'sg_' + Date.now(), name, code, savedAt: Date.now() });
+                persistSavedGames(list);
+                playSound('connect');
+                showMessage('تم تثبيت «' + name + '» بنجاح ✓');
+                refreshGamesMenuList();
+            };
+
+            document.getElementById('custom-html-fs-btn').onclick = () => {
+                let fs = document.getElementById('custom-html-fs');
+                if (fs) { fs.remove(); return; }
+                fs = document.createElement('div');
+                fs.id = 'custom-html-fs';
+                fs.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;';
+                fs.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#0f172a;"><span style="color:#34d399;font-weight:900;font-size:12px;">ملء الشاشة</span><button id="fs-close" style="background:#be123c;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:bold;">تصغير ✕</button></div><iframe sandbox="allow-scripts" style="flex:1;width:100%;border:none;background:#fff;"></iframe>`;
+                document.body.appendChild(fs);
+                fs.querySelector('iframe').srcdoc = input.value;
+                fs.querySelector('#fs-close').onclick = () => fs.remove();
+                playSound('select');
+            };
+
+            if (runImmediately && prefillCode) setTimeout(runCode, 50);
+        }
+    </script>
+</body>
+</html>

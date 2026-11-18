@@ -10,6 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
@@ -454,7 +455,47 @@
                                     </div>
                                     <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
                                 </div>
-                                <div onclick="launchGame('custom')" data-index="7" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                <div onclick="launchGame('race3d')" data-index="7" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-sky-900 flex items-center justify-center text-sm">🏎️</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">سباق 3D</span>
+                                            <span class="text-[9px] text-slate-400">تجنب الحواجز على الطريق</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('tunnel3d')" data-index="8" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-violet-900 flex items-center justify-center text-sm">🌀</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">نفق الفضاء 3D</span>
+                                            <span class="text-[9px] text-slate-400">حلّق داخل النفق الملون</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('orb3d')" data-index="9" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-amber-900 flex items-center justify-center text-sm">🔮</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">صائد الكرات 3D</span>
+                                            <span class="text-[9px] text-slate-400">اجمع الكرات وتجنب الحمراء</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('arena3d')" data-index="10" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded bg-rose-900 flex items-center justify-center text-sm">🏟️</div>
+                                        <div class="text-right">
+                                            <span class="block text-[11px] font-black text-white">حلبة التجنب 3D</span>
+                                            <span class="text-[9px] text-slate-400">تحرك في الحلبة وتجنب الصناديق</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-play text-[10px] text-slate-600"></i>
+                                </div>
+                                <div onclick="launchGame('custom')" data-index="11" class="game-item p-1.5 rounded-lg border border-slate-800 bg-slate-900/40 flex items-center justify-between cursor-pointer">
                                     <div class="flex items-center gap-2">
                                         <div class="w-7 h-7 rounded bg-cyan-900 flex items-center justify-center text-sm">📄</div>
                                         <div class="text-right">
@@ -1125,7 +1166,8 @@
         function goHome() {
             playSound('exit');
             setPaused(false);
-            activeGame = null; isGameOver = false; particles = []; floatingTexts = [];
+            activeGame = null; isGameOver = false; particles = [];
+            if (typeof dispose3D === "function") dispose3D(); floatingTexts = [];
             if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
             try { if (conn) { conn.close(); conn = null; } if (peer) { peer.destroy(); peer = null; } } catch(e) {}
             document.getElementById('screen-host').classList.add('hidden');
@@ -1227,6 +1269,7 @@
         function launchGame(name) {
             playSound('select');
             setPaused(false);
+            if (typeof dispose3D === 'function') dispose3D();
             document.getElementById('menu-overlay').classList.add('hidden');
             document.getElementById('menu-overlay').classList.remove('flex');
             document.getElementById('gameover-overlay').classList.add('hidden');
@@ -1235,7 +1278,9 @@
             loader.classList.remove('hidden'); loader.classList.add('flex');
             title.innerText = {
                 snake: 'جاري تحميل الأفعى HD...', mario: 'جاري تجهيز عوالم سوبر بوكيت...', space: 'جاري تجهيز حرب المجرات...',
-                pong: 'جاري تجهيز بونغ نيون...', flappy: 'جاري تجهيز فلابي سيتي...', bricks: 'جاري بناء الكريستال...', dodge: 'جاري تجهيز عاصفة النيازك...', custom: 'جاري فتح محرر HTML...'
+                pong: 'جاري تجهيز بونغ نيون...', flappy: 'جاري تجهيز فلابي سيتي...', bricks: 'جاري بناء الكريستال...', dodge: 'جاري تجهيز عاصفة النيازك...',
+                race3d: 'جاري تحميل سباق 3D...', tunnel3d: 'جاري بناء النفق 3D...', orb3d: 'جاري تجهيز صائد الكرات...', arena3d: 'جاري تجهيز الحلبة...',
+                custom: 'جاري فتح محرر HTML...'
             }[name] || 'جاري التحميل...';
             setTimeout(() => {
                 loader.classList.add('hidden'); loader.classList.remove('flex');
@@ -1251,6 +1296,10 @@
                 else if (name === 'bricks') { document.getElementById('current-game-title').innerText = 'محطم الكريستال'; initBricks(); }
                 else if (name === 'dodge') { document.getElementById('current-game-title').innerText = 'عاصفة النيازك'; initDodge(); }
                 else if (name === 'pong') { document.getElementById('current-game-title').innerText = 'بونغ نيون'; initPong(); }
+                else if (name === 'race3d') { document.getElementById('current-game-title').innerText = 'سباق 3D'; initRace3D(); }
+                else if (name === 'tunnel3d') { document.getElementById('current-game-title').innerText = 'نفق الفضاء 3D'; initTunnel3D(); }
+                else if (name === 'orb3d') { document.getElementById('current-game-title').innerText = 'صائد الكرات 3D'; initOrb3D(); }
+                else if (name === 'arena3d') { document.getElementById('current-game-title').innerText = 'حلبة التجنب 3D'; initArena3D(); }
                 else if (name === 'custom') { document.getElementById('current-game-title').innerText = 'HTML مخصص'; initCustomHTML(); }
             }, 350);
         }
@@ -1298,6 +1347,83 @@
                     else if (d === 'RIGHT' && snakeVel.x !== -1) snakeNextVel = {x:1,y:0};
                 }
             }
+            // Forward all controller input into any custom HTML iframe
+            if (activeGame === 'custom') forwardInputToCustomHTML(data);
+        }
+
+        // Bridge: send controller state into custom HTML (keyboard + PocketControls API)
+        function forwardInputToCustomHTML(data) {
+            const payload = { source: 'pocket-retro', data: data, held: { ...heldDirs }, a: !!isBoosted };
+            const frames = [];
+            const f1 = document.getElementById('custom-html-frame');
+            if (f1 && f1.contentWindow) frames.push(f1.contentWindow);
+            const fs = document.getElementById('custom-html-fs');
+            if (fs) {
+                const f2 = fs.querySelector('iframe');
+                if (f2 && f2.contentWindow) frames.push(f2.contentWindow);
+            }
+            frames.forEach(w => {
+                try { w.postMessage(payload, '*'); } catch (e) {}
+            });
+        }
+
+        function buildHTMLWithControllerBridge(userCode) {
+            const bridge = `<script>(function(){
+  if (window.__pocketBridge) return; window.__pocketBridge = true;
+  window.PocketControls = { up:false, down:false, left:false, right:false, a:false, b:false, x:false, y:false, l1:false, r1:false, start:false, select:false, held:{} };
+  const keyFor = { UP:'ArrowUp', DOWN:'ArrowDown', LEFT:'ArrowLeft', RIGHT:'ArrowRight' };
+  function fireKey(code, down) {
+    try {
+      const ev = new KeyboardEvent(down ? 'keydown' : 'keyup', { key: code, code: code, keyCode: ({ArrowUp:38,ArrowDown:40,ArrowLeft:37,ArrowRight:39,Space:32,Enter:13,Escape:27,KeyZ:90,KeyX:88,KeyC:67,ShiftLeft:16}[code]||0), bubbles:true, cancelable:true });
+      window.dispatchEvent(ev);
+      if (document.activeElement) document.activeElement.dispatchEvent(ev);
+      document.dispatchEvent(ev);
+    } catch(e) {}
+  }
+  window.addEventListener('message', function(ev) {
+    const msg = ev.data;
+    if (!msg || msg.source !== 'pocket-retro') return;
+    const d = msg.data || {};
+    if (msg.held) {
+      window.PocketControls.held = msg.held;
+      window.PocketControls.up = !!msg.held.UP;
+      window.PocketControls.down = !!msg.held.DOWN;
+      window.PocketControls.left = !!msg.held.LEFT;
+      window.PocketControls.right = !!msg.held.RIGHT;
+    }
+    if (d.type === 'dir' && d.dir) {
+      const k = keyFor[d.dir];
+      if (k) fireKey(k, d.active !== false);
+      if (typeof d.active === 'boolean') {
+        const map = { UP:'up', DOWN:'down', LEFT:'left', RIGHT:'right' };
+        if (map[d.dir]) window.PocketControls[map[d.dir]] = d.active;
+      }
+    }
+    if (d.type === 'actionA') {
+      window.PocketControls.a = !!d.active;
+      fireKey('Space', !!d.active);
+      fireKey('Enter', !!d.active);
+      fireKey('KeyZ', !!d.active);
+    }
+    if (d.type === 'exit') {
+      window.PocketControls.b = true;
+      fireKey('Escape', true);
+      setTimeout(function(){ window.PocketControls.b = false; fireKey('Escape', false); }, 80);
+    }
+    if (d.type === 'pause') {
+      window.PocketControls.start = true;
+      fireKey('Enter', true);
+      setTimeout(function(){ window.PocketControls.start = false; }, 80);
+    }
+    try { window.dispatchEvent(new CustomEvent('pocketinput', { detail: msg })); } catch(e) {}
+  });
+})();<\/script>`;
+            // Inject bridge as early as possible
+            const code = String(userCode || '');
+            if (/<head[^>]*>/i.test(code)) return code.replace(/<head[^>]*>/i, m => m + bridge);
+            if (/<html[^>]*>/i.test(code)) return code.replace(/<html[^>]*>/i, m => m + '<head>' + bridge + '</head>');
+            if (/<body[^>]*>/i.test(code)) return bridge + code;
+            return bridge + code;
         }
 
         // ================= PAUSE =================
@@ -1955,6 +2081,312 @@
             updateAndDrawEffects();
         }
 
+
+        // ================= 3D ENGINE (Three.js) =================
+        let t3 = { renderer:null, scene:null, camera:null, alive:false, objects:[], clock:0 };
+        function dispose3D() {
+            t3.alive = false;
+            if (t3.renderer) {
+                try {
+                    const el = t3.renderer.domElement;
+                    if (el && el.parentNode) el.parentNode.removeChild(el);
+                    t3.renderer.dispose();
+                } catch(e) {}
+            }
+            t3.renderer = null; t3.scene = null; t3.camera = null; t3.objects = [];
+            // show 2d canvas again
+            const c = document.getElementById('gameCanvas');
+            if (c) c.style.display = 'block';
+        }
+        function setup3D() {
+            if (typeof THREE === 'undefined') { showMessage('مكتبة 3D لم تُحمّل، تحقق من الإنترنت', true); return false; }
+            dispose3D();
+            const wrap = document.getElementById('game-area-wrap');
+            const c2d = document.getElementById('gameCanvas');
+            if (c2d) c2d.style.display = 'none';
+            const w = wrap.clientWidth || 600, h = wrap.clientHeight || 600;
+            t3.scene = new THREE.Scene();
+            t3.camera = new THREE.PerspectiveCamera(65, w/h, 0.1, 500);
+            t3.renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
+            t3.renderer.setSize(w, h);
+            t3.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            t3.renderer.setClearColor(0x060911, 1);
+            t3.renderer.domElement.style.width = '100%';
+            t3.renderer.domElement.style.height = '100%';
+            t3.renderer.domElement.style.display = 'block';
+            wrap.insertBefore(t3.renderer.domElement, wrap.firstChild);
+            const amb = new THREE.AmbientLight(0xffffff, 0.55);
+            t3.scene.add(amb);
+            const dir = new THREE.DirectionalLight(0xffffff, 0.85);
+            dir.position.set(5, 12, 8);
+            t3.scene.add(dir);
+            t3.alive = true; t3.clock = 0; t3.objects = [];
+            return true;
+        }
+        function render3D() {
+            if (t3.renderer && t3.scene && t3.camera) t3.renderer.render(t3.scene, t3.camera);
+        }
+
+        // ---- Race 3D ----
+        let raceCar, raceObstacles=[], raceZ=0, raceLane=0;
+        function initRace3D() {
+            if (!setup3D()) return;
+            raceZ = 0; raceLane = 0; raceObstacles = [];
+            t3.camera.position.set(0, 3.2, 6);
+            t3.camera.lookAt(0, 0.5, -10);
+            // road
+            const road = new THREE.Mesh(new THREE.PlaneGeometry(8, 400), new THREE.MeshStandardMaterial({ color:0x1e293b }));
+            road.rotation.x = -Math.PI/2; road.position.z = -150;
+            t3.scene.add(road);
+            // lines
+            for (let i=0;i<40;i++) {
+                const line = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 3), new THREE.MeshBasicMaterial({ color:0xfbbf24 }));
+                line.rotation.x = -Math.PI/2; line.position.set(0, 0.02, -i*8);
+                t3.scene.add(line); t3.objects.push(line);
+            }
+            // car
+            raceCar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 2), new THREE.MeshStandardMaterial({ color:0x22d3ee, metalness:0.4, roughness:0.3 }));
+            raceCar.position.set(0, 0.4, 2);
+            t3.scene.add(raceCar);
+            // side barriers
+            for (let s of [-4.2, 4.2]) {
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1, 400), new THREE.MeshStandardMaterial({ color:0x334155 }));
+                wall.position.set(s, 0.5, -150); t3.scene.add(wall);
+            }
+            for (let i=0;i<12;i++) spawnRaceObstacle(-20 - i*18);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(loopRace3D);
+        }
+        function spawnRaceObstacle(z) {
+            const lane = [-2.2, 0, 2.2][Math.floor(Math.random()*3)];
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.3, 1.3), new THREE.MeshStandardMaterial({ color:0xef4444 }));
+            mesh.position.set(lane, 0.7, z);
+            t3.scene.add(mesh);
+            raceObstacles.push({ mesh, lane, z, hit:false });
+        }
+        function loopRace3D() {
+            if (activeGame !== 'race3d' || isGameOver || !t3.alive) return;
+            animationFrameId = requestAnimationFrame(loopRace3D);
+            t3.clock += 0.016;
+            const spd = 0.45 + Math.min(0.55, score/400);
+            raceZ += spd;
+            if (heldDirs.LEFT) raceLane = Math.max(-2.2, raceLane - 0.15);
+            if (heldDirs.RIGHT) raceLane = Math.min(2.2, raceLane + 0.15);
+            raceCar.position.x += (raceLane - raceCar.position.x) * 0.2;
+            raceCar.position.z = 2;
+            t3.camera.position.x = raceCar.position.x * 0.5;
+            // move obstacles toward car
+            for (let o of raceObstacles) {
+                o.mesh.position.z += spd;
+                if (!o.hit && o.mesh.position.z > 0.5 && o.mesh.position.z < 3.5 && Math.abs(o.mesh.position.x - raceCar.position.x) < 1.1) {
+                    o.hit = true; showGameOver('اصطدمت بحاجز!'); return;
+                }
+                if (o.mesh.position.z > 8) {
+                    o.mesh.position.z -= 160;
+                    o.mesh.position.x = [-2.2,0,2.2][Math.floor(Math.random()*3)];
+                    o.hit = false;
+                    updateScore(score + 5);
+                }
+            }
+            // animate road lines
+            t3.objects.forEach((ln,i) => {
+                ln.position.z += spd;
+                if (ln.position.z > 8) ln.position.z -= 320;
+            });
+            render3D();
+        }
+
+        // ---- Tunnel 3D ----
+        let tunnelRings=[], tunnelAngle=0, tunnelSpeed=0.8;
+        function initTunnel3D() {
+            if (!setup3D()) return;
+            tunnelRings=[]; tunnelAngle=0; tunnelSpeed=0.8;
+            t3.camera.position.set(0,0,0);
+            t3.scene.background = new THREE.Color(0x020617);
+            for (let i=0;i<28;i++) {
+                const geo = new THREE.TorusGeometry(3.2, 0.12, 8, 24);
+                const col = new THREE.Color().setHSL((i/28), 0.8, 0.5);
+                const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:col, emissive:col, emissiveIntensity:0.35 }));
+                mesh.position.z = -i * 3.5;
+                t3.scene.add(mesh);
+                tunnelRings.push(mesh);
+            }
+            // ship
+            const ship = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.1, 6), new THREE.MeshStandardMaterial({ color:0x38bdf8, emissive:0x0284c7, emissiveIntensity:0.5 }));
+            ship.rotation.x = Math.PI/2; ship.position.z = -2;
+            ship.name = 'ship';
+            t3.scene.add(ship);
+            t3.objects.push(ship);
+            // obstacles in tunnel
+            for (let i=0;i<10;i++) {
+                const obs = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.7,0.7), new THREE.MeshStandardMaterial({ color:0xf43f5e }));
+                const a = Math.random()*Math.PI*2;
+                obs.position.set(Math.cos(a)*2.2, Math.sin(a)*2.2, -15 - i*12);
+                t3.scene.add(obs);
+                t3.objects.push(obs);
+            }
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(loopTunnel3D);
+        }
+        function loopTunnel3D() {
+            if (activeGame !== 'tunnel3d' || isGameOver || !t3.alive) return;
+            animationFrameId = requestAnimationFrame(loopTunnel3D);
+            tunnelSpeed = 0.9 + Math.min(1.2, score/200);
+            if (heldDirs.LEFT) tunnelAngle += 0.07;
+            if (heldDirs.RIGHT) tunnelAngle -= 0.07;
+            const ship = t3.objects[0];
+            if (ship) {
+                ship.position.x = Math.cos(tunnelAngle)*1.5;
+                ship.position.y = Math.sin(tunnelAngle)*1.5;
+            }
+            tunnelRings.forEach((r,i) => {
+                r.position.z += tunnelSpeed * 0.35;
+                r.rotation.z += 0.01;
+                if (r.position.z > 2) {
+                    r.position.z -= 28*3.5;
+                    updateScore(score + 1);
+                }
+            });
+            // obstacles
+            for (let i=1;i<t3.objects.length;i++) {
+                const o = t3.objects[i];
+                o.position.z += tunnelSpeed * 0.35;
+                o.rotation.x += 0.05; o.rotation.y += 0.04;
+                if (o.position.z > 1) {
+                    o.position.z -= 120;
+                    const a = Math.random()*Math.PI*2;
+                    o.position.x = Math.cos(a)*2.2; o.position.y = Math.sin(a)*2.2;
+                }
+                if (ship && o.position.z > -3.5 && o.position.z < -1) {
+                    const dx = o.position.x - ship.position.x, dy = o.position.y - ship.position.y;
+                    if (Math.hypot(dx,dy) < 0.9) { showGameOver('اصطدمت داخل النفق!'); return; }
+                }
+            }
+            t3.camera.rotation.z = tunnelAngle * 0.15;
+            render3D();
+        }
+
+        // ---- Orb Collector 3D ----
+        let orbPlayer, orbs=[], orbT=0;
+        function initOrb3D() {
+            if (!setup3D()) return;
+            orbs=[]; orbT=0;
+            t3.camera.position.set(0, 10, 12);
+            t3.camera.lookAt(0,0,0);
+            const floor = new THREE.Mesh(new THREE.CircleGeometry(10, 48), new THREE.MeshStandardMaterial({ color:0x0f172a }));
+            floor.rotation.x = -Math.PI/2; t3.scene.add(floor);
+            const grid = new THREE.GridHelper(18, 18, 0x1e293b, 0x1e293b);
+            t3.scene.add(grid);
+            orbPlayer = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 16), new THREE.MeshStandardMaterial({ color:0x22d3ee, emissive:0x0891b2, emissiveIntensity:0.4 }));
+            orbPlayer.position.y = 0.55; t3.scene.add(orbPlayer);
+            for (let i=0;i<14;i++) spawnOrb();
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(loopOrb3D);
+        }
+        function spawnOrb() {
+            const bad = Math.random() < 0.28;
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 12), new THREE.MeshStandardMaterial({
+                color: bad ? 0xef4444 : 0xfbbf24, emissive: bad ? 0x991b1b : 0xb45309, emissiveIntensity:0.45
+            }));
+            const a = Math.random()*Math.PI*2, r = 2+Math.random()*7;
+            mesh.position.set(Math.cos(a)*r, 0.35, Math.sin(a)*r);
+            t3.scene.add(mesh);
+            orbs.push({ mesh, bad, alive:true });
+        }
+        function loopOrb3D() {
+            if (activeGame !== 'orb3d' || isGameOver || !t3.alive) return;
+            animationFrameId = requestAnimationFrame(loopOrb3D);
+            orbT += 0.016;
+            const spd = 0.18;
+            if (heldDirs.LEFT) orbPlayer.position.x -= spd;
+            if (heldDirs.RIGHT) orbPlayer.position.x += spd;
+            if (heldDirs.UP) orbPlayer.position.z -= spd;
+            if (heldDirs.DOWN) orbPlayer.position.z += spd;
+            // clamp
+            const lim = 8.5;
+            orbPlayer.position.x = Math.max(-lim, Math.min(lim, orbPlayer.position.x));
+            orbPlayer.position.z = Math.max(-lim, Math.min(lim, orbPlayer.position.z));
+            orbPlayer.position.y = 0.55 + Math.sin(orbT*4)*0.05;
+            t3.camera.position.x = orbPlayer.position.x * 0.3;
+            t3.camera.position.z = orbPlayer.position.z + 12;
+            t3.camera.lookAt(orbPlayer.position.x, 0, orbPlayer.position.z);
+            for (let o of orbs) {
+                if (!o.alive) continue;
+                o.mesh.position.y = 0.35 + Math.sin(orbT*3 + o.mesh.position.x)*0.15;
+                o.mesh.rotation.y += 0.03;
+                if (o.mesh.position.distanceTo(orbPlayer.position) < 0.95) {
+                    o.alive = false; t3.scene.remove(o.mesh);
+                    if (o.bad) { showGameOver('لمست كرة حمراء!'); return; }
+                    playSound('eat'); updateScore(score + 15); spawnOrb();
+                }
+            }
+            render3D();
+        }
+
+        // ---- Arena 3D ----
+        let arenaPlayer, arenaBoxes=[], arenaT=0;
+        function initArena3D() {
+            if (!setup3D()) return;
+            arenaBoxes=[]; arenaT=0;
+            t3.camera.position.set(0, 14, 14);
+            t3.camera.lookAt(0,0,0);
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(16, 0.4, 16), new THREE.MeshStandardMaterial({ color:0x111827 }));
+            floor.position.y = -0.2; t3.scene.add(floor);
+            // walls
+            for (const [x,z,w,d] of [[0,-8.2,16.8,0.4],[0,8.2,16.8,0.4],[-8.2,0,0.4,16.8],[8.2,0,0.4,16.8]]) {
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 1.6, d), new THREE.MeshStandardMaterial({ color:0x1e293b }));
+                wall.position.set(x, 0.8, z); t3.scene.add(wall);
+            }
+            arenaPlayer = new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,1,12), new THREE.MeshStandardMaterial({ color:0x34d399, emissive:0x059669, emissiveIntensity:0.35 }));
+            arenaPlayer.position.y = 0.5; t3.scene.add(arenaPlayer);
+            for (let i=0;i<8;i++) {
+                const b = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({ color:0xf97316 }));
+                b.position.set((Math.random()-0.5)*12, 0.5, (Math.random()-0.5)*12);
+                b.userData.vx = (Math.random()-0.5)*0.12;
+                b.userData.vz = (Math.random()-0.5)*0.12;
+                t3.scene.add(b); arenaBoxes.push(b);
+            }
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(loopArena3D);
+        }
+        function loopArena3D() {
+            if (activeGame !== 'arena3d' || isGameOver || !t3.alive) return;
+            animationFrameId = requestAnimationFrame(loopArena3D);
+            arenaT += 0.016;
+            const spd = 0.16;
+            if (heldDirs.LEFT) arenaPlayer.position.x -= spd;
+            if (heldDirs.RIGHT) arenaPlayer.position.x += spd;
+            if (heldDirs.UP) arenaPlayer.position.z -= spd;
+            if (heldDirs.DOWN) arenaPlayer.position.z += spd;
+            arenaPlayer.position.x = Math.max(-7.2, Math.min(7.2, arenaPlayer.position.x));
+            arenaPlayer.position.z = Math.max(-7.2, Math.min(7.2, arenaPlayer.position.z));
+            t3.camera.position.x = arenaPlayer.position.x * 0.4;
+            t3.camera.position.z = arenaPlayer.position.z + 14;
+            t3.camera.lookAt(arenaPlayer.position.x, 0, arenaPlayer.position.z);
+            if (Math.floor(arenaT*10)%20===0) updateScore(score+1);
+            for (let b of arenaBoxes) {
+                b.position.x += b.userData.vx;
+                b.position.z += b.userData.vz;
+                if (Math.abs(b.position.x) > 7) b.userData.vx *= -1;
+                if (Math.abs(b.position.z) > 7) b.userData.vz *= -1;
+                b.rotation.x += 0.02; b.rotation.y += 0.03;
+                // speed up slightly
+                b.userData.vx *= 1.0003; b.userData.vz *= 1.0003;
+                const dx = b.position.x - arenaPlayer.position.x;
+                const dz = b.position.z - arenaPlayer.position.z;
+                if (Math.hypot(dx,dz) < 1.05) { showGameOver('اصطدمت بصندوق!'); return; }
+            }
+            // spawn extra box over time
+            if (arenaT > 8 && arenaBoxes.length < 16 && Math.random()<0.01) {
+                const b = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({ color:0xe11d48 }));
+                b.position.set((Math.random()-0.5)*10, 0.5, (Math.random()-0.5)*10);
+                b.userData.vx = (Math.random()-0.5)*0.16; b.userData.vz = (Math.random()-0.5)*0.16;
+                t3.scene.add(b); arenaBoxes.push(b);
+            }
+            render3D();
+        }
+
+
         // ================= SAVE & HTML CUSTOM =================
         function loadSavedGames() { try { return JSON.parse(localStorage.getItem('pocketRetroSavedGamesUltra') || '[]'); } catch(e) { return []; } }
         function persistSavedGames(list) { localStorage.setItem('pocketRetroSavedGamesUltra', JSON.stringify(list)); }
@@ -2028,7 +2460,17 @@
                 exitToMenu();
             };
 
-            const runCode = () => { document.getElementById('custom-html-frame').srcdoc = input.value; playSound('select'); };
+            const runCode = () => {
+                const bridged = buildHTMLWithControllerBridge(input.value);
+                const frame = document.getElementById('custom-html-frame');
+                if (frame) frame.srcdoc = bridged;
+                const fs = document.getElementById('custom-html-fs');
+                if (fs) {
+                    const f2 = fs.querySelector('iframe');
+                    if (f2) f2.srcdoc = bridged;
+                }
+                playSound('select');
+            };
             document.getElementById('custom-html-run').onclick = runCode;
 
             document.getElementById('custom-html-pin').onclick = () => {
@@ -2051,7 +2493,7 @@
                 fs.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;';
                 fs.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#0f172a;"><span style="color:#34d399;font-weight:900;font-size:12px;">ملء الشاشة</span><button id="fs-close" style="background:#be123c;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:bold;">تصغير ✕</button></div><iframe sandbox="allow-scripts" style="flex:1;width:100%;border:none;background:#fff;"></iframe>`;
                 document.body.appendChild(fs);
-                fs.querySelector('iframe').srcdoc = input.value;
+                fs.querySelector('iframe').srcdoc = buildHTMLWithControllerBridge(input.value);
                 fs.querySelector('#fs-close').onclick = () => fs.remove();
                 playSound('select');
             };
